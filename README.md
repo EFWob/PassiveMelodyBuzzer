@@ -19,10 +19,11 @@ Go try it, and let me know if you came up with a beautiful melody!
 Mit dieser Library ist es möglich, Melodien über eine am Controller angeschlossenen Passiven Buzzer zu spielen.
 Zwei wesentliche Entwicklungsziele gab es:
 - Nichtblockierendes Abspielen soll möglich sein.
-- Melodien sollen zur Laufzeit über eine möglichst einfache aber trotzdem leistungsfähige "Notensprache" in ASCII beschrieben werden können.
+- Melodien sollen zur Laufzeit über eine möglichst einfache aber trotzdem leistungsfähige "Notensprache" in ASCII beschrieben werden können. 
 
 Das hat geklappt, allerdings bedeutet das, dass man wenigstens grundlegendes Verständnis von Noten haben muss, um erfolgreich eigene Melodien zu schreiben (ein paar mehr oder weniger bekannte Melodien werden allerdings im folgenden beschrieben und können z. B. im Repository enthaltenen Arduino-Sketch *SerialBuzzer.ino* über die Serielle Schnittstelle ausprobiert werden).
-Auch das nichtblockierende Playback wird dadurch erreicht, dass die Tongenerierung über einen Timer-Interrupt erfolgt.
+
+Auch das nichtblockierende Playback wird erreicht, indem die Tongenerierung über einen Timer-Interrupt erfolgt. Das bewirkt eine hohe Genauigkeit in der Tonhöhe und Dauer, kommt aber auf Kosten der Portabilität: momentan ist die Umsetzung auf ESP32 beschränkt.
 
 ## Beschreibung des Beispiels *BuzzerSerial.ino*
 Anhand dieses Abschnitts soll die wesentliche API zur Anwendung der Bibliothek erläutert werden.
@@ -159,7 +160,7 @@ Nun können wir uns an die Notenlängen wagen. Bisher hat jede Note die exakt gl
 - eine Verlängerung wird eingeleitet durch ein **\*** direkt (ohne Leerzeichen) hinter dem Notennamen wiederum direkt gefolgt von einer positiven Ganzzahl (>0, ohne Vorzeichen). Die zugehörige Note wird auf die gültige Standardlänge (bisher 500msec) multipliziert mit der angegebene Ganzzahl verlängert.
 - eine Verkürzung wird eingeleitet durch ein **/** direkt (ohne Leerzeichen) hinter dem Notennamen wiederum direkt gefolgt von einer positiven Ganzzahl (>0, ohne Vorzeichen). Die zugehörige Note wird auf die bisher gültige Standardlänge (500ms) dividiert durch um die angegebene Ganzzahl verkürzt.
 - beides kann kombiniert werden: **C\*3/4**, wodurch die Note auf 375ms (500 * 3 / 4) der ursprünglichen Länge verkürzt wird.
-- bei einer kombinierten Angabe ist es egal, ob Verlängerung oder Verkürzung zuerst angegeben werden. **C\4\*3** ist identisch zum vorherigen Beispiel. Aus musikalischem Verständnis heraus ist diese Variante ggf. einprägsamer. Wenn man sich Standardschlag von 120 bpm (Schlägen pro Minute, entspricht einer Notenlänge von 500ms) z. B. als Viertel-Note vorstellt, wird daraus zunächst durch **/4** eine 16-tel Note, deren Länge multipliziert mit 3 einer punktierten Achtel entspricht.
+- bei einer kombinierten Angabe ist es egal, ob Verlängerung oder Verkürzung zuerst angegeben werden. **C/4\*3** ist identisch zum vorherigen Beispiel. Aus musikalischem Verständnis heraus ist diese Variante ggf. einprägsamer. Wenn man sich Standardschlag von 120 bpm (Schlägen pro Minute, entspricht einer Notenlänge von 500ms) z. B. als Viertel-Note vorstellt, wird daraus zunächst durch **/4** eine 16-tel Note, deren Länge multipliziert mit 3 einer punktierten Achtel entspricht.
 
 Hier mal eine C-Dur-Tonleiter mit unterschiedlichen Notenlängen.
 ```
@@ -211,13 +212,13 @@ cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !=240 cdef g*2,g*2, a.a.a.a. g*4, a.
 ```
 
 Prinzipiell kann die Geschwindigkeit damit beliebig oft verändert werden. Diese absolute Setzung empfiehlt sich jedoch wenn möglich nur einmalig am Anfang zu machen, danach sollten ebenfalls mögliche relative Geschwindigkeitsänderungen genutzt werden. Diese werden analog wie für die einzelnen Noten angegeben spezifiziert:
-- **!\*** direkt gefolgt von einer Ganzzahl > 1 verdoppelt den Grundschlag für alle folgenden Noten um den angegebenen Faktor (**!\*2**) verdoppelt also den gültigen Grundschlag.
-- **/** direkt gefolgt von einer Ganzzahl > 1 verkürzt den Grundschlag für alle folgenden Noten um den angegebenen Faktor (**!/4**) verkürzt also den Grundschlag für alle folgenden Noten.
+- **!\*** direkt gefolgt von einer Ganzzahl > 1 verlängert alle folgenden Noten um den angegebenen Faktor (**!\*2**) verdoppelt also die Länge (und halbiert somit effektiv den Grundschlag) für alle folgenden Noten..
+- **!/** direkt gefolgt von einer Ganzzahl > 1 verkürzt die Länge aller folgenden Noten um den angegebenen Faktor (**!/2**) halbiert also die Länge (und verdoppelt somit effektiv den Grundschlag) für alle folgenden Noten.
 - der Grundschlag ist dabei der durch die letzte **!=**-Sequenz gesetzte Schlag (bzw. der Standard von 120 bpm falls keine individuelle Einstellung erfolgte).
-- wie bei den individuellen Verkürzungen/Verlängerungen für einzelne Noten vorher, können auch hier beide Varianten zur Darstellung nicht-ganzzahliger Faktoren verwendet werden. **!/4*3** verkürzt den Grundschlag für alle nachfolgden Noten auf 75% der ursprünglichen Länge
+- wie bei den individuellen Verkürzungen/Verlängerungen für einzelne Noten vorher, können auch hier beide Varianten zur Darstellung nicht-ganzzahliger Faktoren verwendet werden. **!/4*3** verkürzt alle nachfolgden Noten auf 75% der ursprünglichen Länge (und vergrößert somit effektiv den Grundschlag auf 4 Drittel des bisherigen Wertes)
 - Für die einzelnen Noten gilt der so eingestellte Grundschlag, individuelle Verkürzungen/Verlängerungen der Noten bleiben natürlich möglich, und beziehen sich dabei auf den aktuell gültigen Grundschlag.
 - Die Änderung des Grundschlags gilt immer bis zur nächsten Änderung des Grundschlags, maximal bis zum Ende der Melodie. (Jede Melodie startet immer mit dem Grundschlag von 120 bpm)
-- Relative Änderungen des Grundschlags können zurückgenommen werden durch ein einzelnes **!**. Dadurch wird der Grundschlag wieder auf den durch die letzte **!=**-Sequenz gesetzten Schlag (bzw. den Standard von 120 bpm falls keine individuelle Einstellung erfolgte) gesetzt.
+- Relative Änderungen des Grundschlags können zurückgenommen werden durch ein einzelnes **!**. Dadurch wird der Grundschlag wieder auf den durch die letzte **!=**-Sequenz gesetzten Schlag (bzw. den Standard von 120 bpm, falls keine individuelle Einstellung erfolgte) gesetzt.
 
 
 In den folgenden zwei Zeilen ist die erste Zeile eine Kopie des letzten Beispiels. Die zweite Zeile ist musikalisch identisch, äquivalent zum eben gehörten, allerdings mit relativer Geschwindigkeitsänderung (**!/2**)
@@ -233,7 +234,9 @@ cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !/2 cdef g*2,g*2, a.a.a.a. g*4, a.a.
 !=140 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !/2 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r ! cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4,
 ```
 
-Jetzt haben wir uns aber was zur Entspannung verdient. Die folgenden Beispiele sind mit den bisher beschriebenen Mitteln vollständig darstellbar (die senkrechten Striche ggf. gefolgt von Leerzeichen sind nur zur Lesbarkeit eingefügt und sollen Taktstriche verdeutlichen. Vom Parser werden sie, ebenso wie die Leerzeichen, als ungültig ignoriert und haben keine musikalische Bedeutung). Man beachte, dass erstes Beispiel aus der Klassik kommt und Peptolen beinhaltet. (Zweite Zeile ist 80er-Jahre-Pop).
+Jetzt haben wir uns aber was zur Entspannung verdient. Die folgenden Beispiele sind mit den bisher beschriebenen Mitteln vollständig darstellbar (die senkrechten Striche ggf. gefolgt von Leerzeichen sind nur zur Lesbarkeit eingefügt und sollen Taktstriche verdeutlichen. Vom Parser werden sie, ebenso wie die Leerzeichen, als ungültig ignoriert und haben keine musikalische Bedeutung). 
+
+Man beachte, dass erstes Beispiel aus der Klassik kommt und Peptolen beinhaltet. (Die Zweite Zeile ist 80er-Jahre-Italo-Pop).
 
 ```
  !=88 | !/2 #f*5 d !/3 A d #f | ! b*2 #c1 d1 |  !/2 d*3 e !/5 #fg#fe#f !/2 a   A  |6 ! B*3, !/2 #cd, | #fe ! g*2, !/2 #de, | #fg, a, b, ! b B, | #c*2 d !/4 ed#cd | ! e*2 f*2 | #f*3, 
