@@ -105,9 +105,9 @@ bool serialReadLine(String& line)
   *If (optional) the length of a note shall be changed, / or * (followed by an optional number) or any combination of these must be given next
   *If (optional) detachment breaks shall be used, they must be given last
   *No space (or any other undefined character) is permitted in the suffix section at all
- c1/2, d1/2, e1/2, f1/2, g1/2, a1/2, b1/2, c2/2
-
- Length of breaks can also be changed (but then the base length of 'R' will be the same as 'r' and not double)
+ c1/2, d1/2, e1/2, f1/2, g1/2, a1/2, b1/2, c2/2*5
+ 
+ Length of rests can also be changed (but then the base length of 'R' will be the same as 'r' and not double)
  (Note that multplication and division can be combined in either order, so *4/2 is the same as /2*4 and effectively 2)
  (However that can be used to generate fractions like *2/5, not used in the example below)
  (Octave transpositions and detachement have no effect for breaks)

@@ -89,7 +89,7 @@ Mehr Details zu den Tönen und wie man daraus "richtige" Melodien macht kommt sp
 - es gibt 14 Grundtöne, jeweils dargestellt durch einen Groß- oder Kleinbuchstaben, von tief zu hoch sind das
   **C D E F G A B c d e f g a b**.
 - es werden die im Englischen üblichen Namen verwendet. Daher entspricht **Bb** in dieser Notation dem im deutschen
-  Gebrauch üblichen Notennamen **b**.
+  Gebrauch üblichen Notennamen **h**.
 - der Ton **a** ist auf 440Hz festgelegt, der Rest leitet sich daraus aus der gebräuchlichen chromatischen Stimmung ab.
 
 Jetzt noch *loop()*
@@ -188,6 +188,56 @@ Pausen können ebenfalls durch Faktoren verlängert oder verkürzt werden. In di
 
 ```
 c1 d1 e1 f1 g1 r a1 R*4/2. b1 r1*2/4, c2*2
+```
+Damit endlich mal was anderes kommt als die C-Dur-Tonleiter, ein letztes Element zur Modifikation der Tonhöhe: Vorzeichen:
+- Vorzeichen müssen direkt vor dem Notennamen angegeben werden, ohne Leerzeichen oder sonstiges dazwischen.
+- ein **#** erhöht die folgende Note um einen Halbton (**#f** beispielsweise klingt als *fis*)
+- ein **~** erniedrigt die folgende Note um einen Halbton (**~e** beispielsweise klingt als *es*)
+- für jeden der Grundtöne sind beide Vorzeichen definiert, wobei es zu enharmonischen Verwechslungen kommen kann, z. B.  **~a** (as) ist identisch mit **#g** (gis) oder **#e** (e-is) ist identisch mit **f**.
+
+Damit jetzt eine G-Dur-Tonleiter (mit **fis**), nach einer Pause gefolgt von einer F-Dur-Tonleiter
+```
+g a b c1 d1 e1 #f1 g1*2 R f g a ~b c1 d1 e1 f1*2
+```
+
+Damit sind alle Möglichkeiten, eine einzelne Note in Tonlänge und Tonhöhe zu verändern, besprochen. Es folgt die Beschreibung der Möglichkeiten, die Parameter Geschwindigkeit und Tonhöhe einer (Teil-) Melodie insgesamt zu ändern.
+
+### "Permanente" Modifikation von Tonhöhe und Geschwindigkeit
+Das erste, was dringend zu ändern wäre, ist die Festlegung auf den Grundschlag von 120 Schlägen pro Minute. Das ist ganz einfach gemacht, indem die Zeichensequenz **!=** direkt gefolgt von einer positiven (Ganzzahl) größer 0 und kleiner/gleich 6000 angegeben wird. Diese Ganzzahl (wie immer ohne Leerzeichen zwischen **!=** und Zahl) definiert die ab jetzt für alle folgenden Noten der Melodie geltende Schlagzahl. Standard ist 120 Noten pro Minute (bpm), 240 ist also doppelt so schnell, wie man an folgendem Beispiel hört, wo die gleiche recht bekannte Sequenz nur mit anderer Geschwindigkeit wiederholt wird.
+
+```
+cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !=240 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4,
+
+```
+
+Prinzipiell kann die Geschwindigkeit damit beliebig oft verändert werden. Diese absolute Setzung empfiehlt sich jedoch wenn möglich nur einmalig am Anfang zu machen, danach sollten ebenfalls mögliche relative Geschwindigkeitsänderungen genutzt werden. Diese werden analog wie für die einzelnen Noten angegeben spezifiziert:
+- **!\*** direkt gefolgt von einer Ganzzahl > 1 verdoppelt den Grundschlag für alle folgenden Noten um den angegebenen Faktor (**!\*2**) verdoppelt also den gültigen Grundschlag.
+- **/** direkt gefolgt von einer Ganzzahl > 1 verkürzt den Grundschlag für alle folgenden Noten um den angegebenen Faktor (**!/4**) verkürzt also den Grundschlag für alle folgenden Noten.
+- der Grundschlag ist dabei der durch die letzte **!=**-Sequenz gesetzte Schlag (bzw. der Standard von 120 bpm falls keine individuelle Einstellung erfolgte).
+- wie bei den individuellen Verkürzungen/Verlängerungen für einzelne Noten vorher, können auch hier beide Varianten zur Darstellung nicht-ganzzahliger Faktoren verwendet werden. **!/4*3** verkürzt den Grundschlag für alle nachfolgden Noten auf 75% der ursprünglichen Länge
+- Für die einzelnen Noten gilt der so eingestellte Grundschlag, individuelle Verkürzungen/Verlängerungen der Noten bleiben natürlich möglich, und beziehen sich dabei auf den aktuell gültigen Grundschlag.
+- Die Änderung des Grundschlags gilt immer bis zur nächsten Änderung des Grundschlags, maximal bis zum Ende der Melodie. (Jede Melodie startet immer mit dem Grundschlag von 120 bpm)
+- Relative Änderungen des Grundschlags können zurückgenommen werden durch ein einzelnes **!**. Dadurch wird der Grundschlag wieder auf den durch die letzte **!=**-Sequenz gesetzten Schlag (bzw. den Standard von 120 bpm falls keine individuelle Einstellung erfolgte) gesetzt.
+
+
+In den folgenden zwei Zeilen ist die erste Zeile eine Kopie des letzten Beispiels. Die zweite Zeile ist musikalisch identisch, äquivalent zum eben gehörten, allerdings mit relativer Geschwindigkeitsänderung (**!/2**)
+
+Die dritte Zeile ist identisch mit der vorhergehenden, allerdings wurde hier schon zu Beginn eine etwas höhere Grundgeschwindigkeit (140 bpm) eingestellt. Der zweite Teil wird dann weiter mit doppelter Geschwindigkeit, resultierend also 280 bpm abgespielt.
+
+Wer hart im Nehmen ist, kann auch die vierte Zeile spielen. Das ist wie zuvor, nur wird die Sequenz ein drittes Mal gespielt, wobei für die dritte Wiederholung der Schlag durch das **!** wieder auf 140 bpm zurückgesetzt wird.
+
+```
+cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !=240 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4,
+cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !/2 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4,
+!=140 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !/2 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4,
+!=140 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !/2 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r ! cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4,
+```
+
+Jetzt haben wir uns aber was zur Entspannung verdient. Die folgenden Beispiele sind mit den bisher beschriebenen Mitteln vollständig darstellbar (die senkrechten Striche ggf. gefolgt von Leerzeichen sind nur zur Lesbarkeit eingefügt und sollen Taktstriche verdeutlichen. Vom Parser werden sie, ebenso wie die Leerzeichen, als ungültig ignoriert und haben keine musikalische Bedeutung). Man beachte, dass erstes Beispiel aus der Klassik kommt und Peptolen beinhaltet. (Zweite Zeile ist 80er-Jahre-Pop).
+
+```
+ !=88 | !/2 #f*5 d !/3 A d #f | ! b*2 #c1 d1 |  !/2 d*3 e !/5 #fg#fe#f !/2 a   A  |6 ! B*3, !/2 #cd, | #fe ! g*2, !/2 #de, | #fg, a, b, ! b B, | #c*2 d !/4 ed#cd | ! e*2 f*2 | #f*3, 
+ !=600ar+1arar+0ar!*2ar!a1r!*2ar+1!erdrcrdr+0ar!*2ar!ar+1arar+0ar!*2ar!a1r!*2ar+1!erdrcr!*3e.!r!*3c.!r+!*3ar
 ```
 
 
