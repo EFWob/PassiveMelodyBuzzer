@@ -2,7 +2,7 @@
 Bevor es mit der Deutschen Beschreibung weitergeht, erst mal eine Kurzzusammenfassung für unsere Englischsprachigen Freunde.
 
 ## Summary
-Sorry, English readme is still in the making. 
+Sorry, English readme is still in the making. (I would appreciate if some native speaker that knows a bit about scores could volunteer :wink:).
 In a nutshell, this library allows to play melodies using a passive buzzer connected to a digital output pin. 
 Aim was to allow playback in non-blocking mode and have a simple yet powerful way to write down a tune in ASCII.
 As a very basic example the String **"CDEFGABc"** will play a C-Major-scale.
@@ -22,6 +22,7 @@ Zwei wesentliche Entwicklungsziele gab es:
 - Melodien sollen zur Laufzeit über eine möglichst einfache aber trotzdem leistungsfähige "Notensprache" in ASCII beschrieben werden können. 
 
 Das hat geklappt, allerdings bedeutet das, dass man wenigstens grundlegendes Verständnis von Noten haben muss, um erfolgreich eigene Melodien zu schreiben (ein paar mehr oder weniger bekannte Melodien werden allerdings im folgenden beschrieben und können z. B. im Repository enthaltenen Arduino-Sketch *SerialBuzzer.ino* über die Serielle Schnittstelle ausprobiert werden).
+Die Sprache ist natürlich gewöhnungsbedürftig zu lesen, ist aber halbwegs intuitiv in der Anwendung beim Transkribieren. Auch die komplizierteren Beispiele unten (wie "Raiders March") sind nach etwas Eingewöhnung in 5 Minuten geschrieben.
 
 Auch das nichtblockierende Playback wird erreicht, indem die Tongenerierung über einen Timer-Interrupt erfolgt. Das bewirkt eine hohe Genauigkeit in der Tonhöhe und Dauer, kommt aber auf Kosten der Portabilität: momentan ist die Umsetzung auf ESP32 beschränkt.
 
@@ -64,7 +65,7 @@ PassiveMelodyBuzzer buzzer(BUZZER_PIN, true);   // Create buzzer object. Second 
 Durch diesen Abschnitt wird:
 - die Bibliothek eingebunden (`#include <PassiveMelodyBuffer.h>`)
 - der Pin als Konstante definiert (`#define BUZZER_PIN 21`) 
-- das Buzzer-Objekt erstellt (`PassiveMelodyBuzzer buzzer(BUZZER_PIN, true);`). Der erste Parameter ist die definierte Pin-Nummer. Der zweite Parameter ist optional (wird als *true* angenommen, falls weggelassen) und legt fest, ob der Buzzer *HIGH*- oder *LOW*-aktiv ist. Pragmatischer Ansatz: wenn sowohl die angesprochnen Klicks als auch die Tonleiter zu hören sind, ist der Parameter OK. Falls die Clicks fehlen und nur die Tonleiter zu Anfang kommt, sollte der Parameter inverviert werden (*false* statt *true*). Falls gar nichts kommt, ist es Zeit, die Verkabelung zu prüfen...
+- das Buzzer-Objekt erstellt (`PassiveMelodyBuzzer buzzer(BUZZER_PIN, true);`). Der erste Parameter ist die definierte Pin-Nummer. Der zweite Parameter ist optional (wird als *true* angenommen, falls weggelassen) und legt fest, ob der Buzzer *HIGH*- oder *LOW*-aktiv ist. Pragmatischer Ansatz: wenn sowohl die angesprochenen Klicks als auch die Tonleiter zu hören sind, ist der Parameter OK. Falls die Klicks fehlen und nur die Tonleiter zu Anfang kommt, sollte der Parameter inverviert werden (*false* statt *true*). Falls gar nichts kommt, ist es Zeit, den Aufbau :electric_plug: zu prüfen...
 
 Weiter mit *setup()*:
 
@@ -112,7 +113,7 @@ void loop() {
 Die "wichtigste" Zeile hier ist der Aufruf `buzzer.loop()`, der die Melodie weiterführt. Falls dieser Aufruf fehlen würde, würde der erste Ton der Melodie nicht beendet werden. Dieser Aufruf muss so oft wie möglich zyklisch erfolgen, ansonsten kann es sein, dass einige/alle Töne der Melodie ungewollt länger erklingen.
 `buzzer.loop();` ist übrigens wirkungsgleich mit `buzzer.busy()`. Liest sich nur bequemer, ansonsten könnte auch in der Zeile `buzzer.busy()` stehen.
 
-Die Bedingung `if (serialReadLine(readLine))` ist dann erfüllt, falls im Seriellen Monitor eine Zeile eingegeben wurde. Idealerweise ist das eine gültige Melodie, diese wird dann durch den Aufruf `buzzer.playMelody(readLine.c_str(), 1);` gestartet. (Der zweite Parameter **1** ist optional und sorgt nur für etwas Ausgaben auf dem seriellen Monitor).
+Die Bedingung `if (serialReadLine(readLine))` ist dann erfüllt, falls im Seriellen Monitor eine Zeile eingegeben wurde. Idealerweise ist das eine gültige Melodie, diese wird dann durch den Aufruf `buzzer.playMelody(readLine, 1);` gestartet. (Der zweite Parameter **1** ist optional und sorgt nur für etwas Ausgaben auf dem seriellen Monitor).
 
 Vorher wird noch durch die Abfrage `if (buzzer.busy())` überprüft, ob aktuell noch eine Melodie (von der vorherigen Eingabe) abgespielt wird. Diese würde dann mit der Anweisung `buzzer.stop();` beendet. 
 Diese Abfrage ist hier nur zu Demozwecken enthalten und eigentlich überflüssig: jeder Aufruf von `buzzer.playMelody()` würde eine eventuell noch laufende Melodie abbrechen, bevor die neue Melodie startet.
@@ -212,13 +213,13 @@ cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !=240 cdef g*2,g*2, a.a.a.a. g*4, a.
 ```
 
 Prinzipiell kann die Geschwindigkeit damit beliebig oft verändert werden. Diese absolute Setzung empfiehlt sich jedoch wenn möglich nur einmalig am Anfang zu machen, danach sollten ebenfalls mögliche relative Geschwindigkeitsänderungen genutzt werden. Diese werden analog wie für die einzelnen Noten angegeben spezifiziert:
-- **!\*** direkt gefolgt von einer Ganzzahl > 1 verlängert alle folgenden Noten um den angegebenen Faktor (**!\*2**) verdoppelt also die Länge (und halbiert somit effektiv den Grundschlag) für alle folgenden Noten..
-- **!/** direkt gefolgt von einer Ganzzahl > 1 verkürzt die Länge aller folgenden Noten um den angegebenen Faktor (**!/2**) halbiert also die Länge (und verdoppelt somit effektiv den Grundschlag) für alle folgenden Noten.
-- der Grundschlag ist dabei der durch die letzte **!=**-Sequenz gesetzte Schlag (bzw. der Standard von 120 bpm falls keine individuelle Einstellung erfolgte).
+- **!\*** direkt gefolgt von einer Ganzzahl > 1 verlängert alle folgenden Noten um den angegebenen Faktor. **!\*2** verdoppelt also die Länge (und halbiert somit effektiv den Grundschlag) für alle folgenden Noten
+- **!/** direkt gefolgt von einer Ganzzahl > 1 verkürzt die Länge aller folgenden Noten um den angegebenen Faktor **!/2** halbiert also die Länge (und verdoppelt somit effektiv den Grundschlag) für alle folgenden Noten
+- der Grundschlag ist dabei der durch die letzte **!=**-Sequenz gesetzte Schlag (bzw. der Standard von 120 bpm, falls keine individuelle Einstellung erfolgte).
 - wie bei den individuellen Verkürzungen/Verlängerungen für einzelne Noten vorher, können auch hier beide Varianten zur Darstellung nicht-ganzzahliger Faktoren verwendet werden. **!/4*3** verkürzt alle nachfolgden Noten auf 75% der ursprünglichen Länge (und vergrößert somit effektiv den Grundschlag auf 4 Drittel des bisherigen Wertes)
 - Für die einzelnen Noten gilt der so eingestellte Grundschlag, individuelle Verkürzungen/Verlängerungen der Noten bleiben natürlich möglich, und beziehen sich dabei auf den aktuell gültigen Grundschlag.
 - Die Änderung des Grundschlags gilt immer bis zur nächsten Änderung des Grundschlags, maximal bis zum Ende der Melodie. (Jede Melodie startet immer mit dem Grundschlag von 120 bpm)
-- Relative Änderungen des Grundschlags können zurückgenommen werden durch ein einzelnes **!**. Dadurch wird der Grundschlag wieder auf den durch die letzte **!=**-Sequenz gesetzten Schlag (bzw. den Standard von 120 bpm, falls keine individuelle Einstellung erfolgte) gesetzt.
+- Relative Änderungen des Grundschlags können zurückgenommen werden durch ein einzelnes **!**. Dadurch wird der Grundschlag wieder auf den durch die letzte **!=**-Sequenz gesetzten Schlag (bzw. den Standard von 120 bpm, falls keine individuelle Einstellung erfolgte) gesetzt
 
 
 In den folgenden zwei Zeilen ist die erste Zeile eine Kopie des letzten Beispiels. Die zweite Zeile ist musikalisch identisch, äquivalent zum eben gehörten, allerdings mit relativer Geschwindigkeitsänderung (**!/2**)
@@ -234,13 +235,45 @@ cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !/2 cdef g*2,g*2, a.a.a.a. g*4, a.a.
 !=140 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !/2 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r ! cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4,
 ```
 
-Jetzt haben wir uns aber was zur Entspannung verdient. Die folgenden Beispiele sind mit den bisher beschriebenen Mitteln vollständig darstellbar (die senkrechten Striche ggf. gefolgt von Leerzeichen sind nur zur Lesbarkeit eingefügt und sollen Taktstriche verdeutlichen. Vom Parser werden sie, ebenso wie die Leerzeichen, als ungültig ignoriert und haben keine musikalische Bedeutung). 
+Neben der "globalen" Änderung der Tondauer kann auch die Tonhöhe (durch Oktavierung) auf globaler Ebene verschoben werden.
+- ein **+1** bis **+4** erhöht alle nachfolgenden Töne um jeweils 1 bis 4 Oktaven bezogen auf den ursprünglichen Notenwert.
+- ein **-1** bis **-4** verringert die Höhe aller nachfolgenden Töne jeweils um 1 bis 4 Oktaven.
+- durch **+** oder **-** ohne nachfolgende Ziffer wird eine eventuelle Oktavierung wieder aufgehoben (ebenso durch **+0** oder **-0**)
+- das ist zusätzlich zu den individuellen Oktavierungen der einzelnen Töne. **+1 c2** ergibt also klingend **c4**
+- Aus technischen Gründen ist Addition (Erhöhung) dabei begrenzt auf 4 Oktaven über dem Grundton: **+1 c4 +4 c2 +4 c3** ergibt also nicht **c5 c6 c7** sondern tatsächlich **c4 c4 c4**. 
 
-Man beachte, dass erstes Beispiel aus der Klassik kommt und Peptolen beinhaltet. (Die Zweite Zeile ist 80er-Jahre-Italo-Pop).
+Mit Hilfe des Einsatzes der Oktavierung lässt sich oft das Notenbild kompakter schreiben, da die individuelle Oktavierung von Tönen wegfällt. Folgende zwei Zeilen spielen jeweils eine identische C-Dur-Tonleiter über 2 Oktaven.
 
 ```
+!=240 c1d1e1f1g1a1b1c2d2e2f2g2a2b2c3
+!=240 +2CDEFGABcdefgabc1
+```
+Durch **-4** kommt man 4 Oktaven unter den bisher tiefsten Ton. In Bereiche, wo es eher Geräusch als Ton ist:
+```
+-4 CDEFGABcdefgabc1
+```
+
+
+
+Jetzt haben wir uns aber was zur Entspannung verdient. Die folgenden Beispiele sind mit den bisher beschriebenen Mitteln vollständig darstellbar (die senkrechten Striche ggf. gefolgt von Leerzeichen sind nur zur Lesbarkeit eingefügt und sollen Taktstriche verdeutlichen. Vom Parser werden sie, ebenso wie die Leerzeichen, als ungültig ignoriert und haben keine musikalische Bedeutung). 
+
+Zuerst was klassisches: Der Anfang von Thais Meditation von Jules Massenet
+```
  !=88 | !/2 #f*5 d !/3 A d #f | ! b*2 #c1 d1 |  !/2 d*3 e !/5 #fg#fe#f !/2 a   A  |6 ! B*3, !/2 #cd, | #fe ! g*2, !/2 #de, | #fg, a, b, ! b B, | #c*2 d !/4 ed#cd | ! e*2 f*2 | #f*3, 
+```
+80er Jahre Italo-Pop: Das Intro aus "Vamos a la playa
+```
  !=600ar+1arar+0ar!*2ar!a1r!*2ar+1!erdrcrdr+0ar!*2ar!ar+1arar+0ar!*2ar!a1r!*2ar+1!erdrcr!*3e.!r!*3c.!r+!*3ar
+```
+
+Und noch mal 80er Jahre Filmmusik/Pop: "Axel F" von Harold Faltermeyer
+```
+ !=130 f. !/4 ~a*3.f*2,f !/2 ~b,f,~e, | ! f. !/4  c1*3.f*2,f !/2 ~d1,c1,~a | fc1f1 !/4 f~e*2.~e, !/2 c, g, f*4,
+```
+
+Oder ganz "klassische Filmmusik": Der "Raiders March" von John Williams aus Indiana Jones 
+```
+ !=125!/4e*3,f!g,c1*2,!/4d*3,e!f*3.!/4g*3,a!b,f1*2.!/4a*3,b!c1d1e1!/4e*3,f!gc1*2!/4d1*3,e1!f1*3,!/4g*3,ge1*4d1*3,ge1*4d1*3,ge1*4d1*3,g!+1e,d,c
 ```
 
 
