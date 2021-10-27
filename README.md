@@ -85,8 +85,8 @@ void setup() {
 
 Die relevanten Anweisungen hier sind:
 - `buzzer.click();`: dadurch wird ein "Klick"-Geräusch erzeugt. Die Funktion wartet nicht, bis der "Klick" vollständig abgearbeitet ist, sondern kehrt sofort zurück.
-- `while (buzzer.busy()) ;`: Wartet, bis der "Klick"-Sound beendet ist. `buzzer.busy())` liefert *true*, solange der letzte sounderzeugende Befehl (hier `buzzer.click()`) noch nicht vollständig abgearbeitet ist.
-- `buzzer.playMelody("C D E F G A B c");` startet schließlich eine "Melodie", in dem Fall eine C-Dur-Tonleiter. Wie bei `buzzer.click()` startet dieser Aufruf die Melodie, kehrt aber unmittelbar zurück und wartet nicht, bis die Melodie fertig abgespielt ist.
+- `while (buzzer.busy()) ;` wartet, bis der "Klick"-Sound beendet ist. `buzzer.busy()` liefert *true*, solange der zuletzt gestartete Klang (hier `buzzer.click();`) noch nicht vollständig abgespielt wurde.
+- `buzzer.playMelody("C D E F G A B c");` startet schließlich eine "Melodie", in dem Fall eine C-Dur-Tonleiter. Wie bei `buzzer.click();` startet dieser Aufruf die Melodie, kehrt aber unmittelbar zurück und wartet nicht, bis die Melodie fertig abgespielt ist.
 
 Mehr Details zu den Tönen und wie man daraus "richtige" Melodien macht kommt später. Jetzt nur soviel:
 - es gibt 14 Grundtöne, jeweils dargestellt durch einen Groß- oder Kleinbuchstaben, von tief zu hoch sind das
@@ -117,7 +117,7 @@ Die "wichtigste" Zeile hier ist der Aufruf `buzzer.loop()`, der die Melodie weit
 Die Bedingung `if (serialReadLine(readLine))` ist dann erfüllt, falls im Seriellen Monitor eine Zeile eingegeben wurde. Idealerweise ist das eine gültige Melodie, diese wird dann durch den Aufruf `buzzer.playMelody(readLine, 1);` gestartet. (Der zweite Parameter **1** ist optional und sorgt nur für etwas Ausgaben auf dem seriellen Monitor).
 
 Vorher wird noch durch die Abfrage `if (buzzer.busy())` überprüft, ob aktuell noch eine Melodie (von der vorherigen Eingabe) abgespielt wird. Diese würde dann mit der Anweisung `buzzer.stop();` beendet. 
-Diese Abfrage ist hier nur zu Demozwecken enthalten und eigentlich überflüssig: jeder Aufruf von `buzzer.playMelody()` würde eine eventuell noch laufende Melodie abbrechen, bevor die neue Melodie startet.
+Diese Abfrage ist hier nur zu Demozwecken enthalten und eigentlich überflüssig: jeder Aufruf von `buzzer.playMelody();` würde eine eventuell noch laufende Melodie abbrechen, bevor die neue Melodie startet.
 
 ## Notation von Melodien
 ### Grundsätzlich
@@ -129,7 +129,7 @@ Dies läßt sich ändern. Dabei können einzelne Parameter (z. B. die Länge) in
 
 Im folgenden werden beide Varianten beschrieben.
 
-Die Erläuterungen lassen sich am besten nachvollziehen, indem sie (nach Laden des Beispiels **Seriam angeschlossenen seriellen Monitor nachvollzogen werden. Einige der nun folgenden Beispielsequenzen sind auch direkt im Sketch mit (am Ende als Kommentar) enthalten.
+Die Erläuterungen lassen sich am besten nachvollziehen, indem sie (nach Laden des Beispiels **BuzzerSerial**) am angeschlossenen seriellen Monitor nachvollzogen werden. Einige der nun folgenden Beispielsequenzen sind auch direkt in diesem Sketch am Ende als Kommentar enthalten.
 Falls mal was schief geht, und irritierende Klänge kommen, kann die Ausgabe der Töne durch Eingabe einer Leerzeile am seriellen Monitor gestoppt werden.
 
 Grundsätzlich ist der Parser für die Notation robust ausgelegt: wenn Zeichen auftauchen, die es laut Notationsvorschrift nicht geben dürfte (den Notennamen 'Z' z. B.) werden diese Zeichen ignoriert (übersprungen).
@@ -169,7 +169,7 @@ Hier mal eine C-Dur-Tonleiter mit unterschiedlichen Notenlängen.
 ```
 C/2 D/2 E/2 F G*2/3 A*2/3 B*2/3 c*2
 ```
-Wenn man den Grundschlag wie eben als Viertel annimmt, sind damit die ersten 3 Töne (halbiert) Achtel, gefolgt von einer Viertel-Note (ohne Veränderung), gefolgt von drei Triolen-Vierteln (**\*2** ergibt eine halbe, die durch **/3** wiederum auf ein drittel davon verkürzt wird) gefolgt von einer halben Note als Abschlußton (**\*2**).
+Wenn man den Grundschlag wie eben als Viertel annimmt, sind damit die ersten 3 Töne (halbiert) Achtel, gefolgt von einer Viertel-Note (ohne Veränderung), gefolgt von drei Triolen-Vierteln (**\*2** ergibt eine halbe, die durch **/3** wiederum auf ein Drittel davon verkürzt wird) gefolgt von einer halben Note als Abschlußton (**\*2**).
 
 Nach der Tonlänge kümmern wir uns nun um die Tonhöhe. Zunächst mit Blick auf den darstellbaren Tonumfang. Bisher kennen wir die die 14 Grundtöne (in Reihenfolge der Tonhöhe) **C D E...** bis **...e f g**. Damit kann man schon was anfangen, aber nicht alles machen. 
 Dazu läßt sich der Tonumfang durch Okavierung erweitern. Oktaviert (erhöht) werden können alle Noten mit Kleinbuchstaben, indem hinter die Note die Ziffer **1** (für eine Oktave höher) bis **4** (4 Oktaven höher) angehängt wird (wie üblich kein Leerzeichen zwischen Notennamen und der Ziffer!). Damit ist der volle Tonumfang nun (anhören auf eigene Gefahr, das zeigt physikalische Grenzen der Buzzer auf):
@@ -241,7 +241,7 @@ Neben der "globalen" Änderung der Tondauer kann auch die Tonhöhe (durch Oktavi
 - ein **+1** bis **+4** erhöht alle nachfolgenden Töne um jeweils 1 bis 4 Oktaven bezogen auf den ursprünglichen Notenwert.
 - ein **-1** bis **-4** verringert die Höhe aller nachfolgenden Töne jeweils um 1 bis 4 Oktaven.
 - durch **+** oder **-** ohne nachfolgende Ziffer wird eine eventuelle Oktavierung wieder aufgehoben (ebenso durch **+0** oder **-0**)
-- das ist zusätzlich zu den individuellen Oktavierungen der einzelnen Töne. **+1 c2** ergibt also klingend **c4**
+- das ist zusätzlich zu den individuellen Oktavierungen der einzelnen Töne. **+1 c2** ergibt also klingend **c3**
 - Aus technischen Gründen ist Addition (Erhöhung) dabei begrenzt auf 4 Oktaven über dem Grundton: **+1 c4 +4 c2 +4 c3** ergibt also nicht **c5 c6 c7** sondern tatsächlich **c4 c4 c4**. 
 
 Mit Hilfe des Einsatzes der Oktavierung lässt sich oft das Notenbild kompakter schreiben, da die individuelle Oktavierung von Tönen wegfällt. Folgende zwei Zeilen spielen jeweils eine identische C-Dur-Tonleiter über 2 Oktaven.
