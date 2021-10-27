@@ -22,9 +22,10 @@ Zwei wesentliche Entwicklungsziele gab es:
 - Melodien sollen zur Laufzeit über eine möglichst einfache aber trotzdem leistungsfähige "Notensprache" in ASCII beschrieben werden können. 
 
 Das hat geklappt, allerdings bedeutet das, dass man wenigstens grundlegendes Verständnis von Noten haben muss, um erfolgreich eigene Melodien zu schreiben (ein paar mehr oder weniger bekannte Melodien werden allerdings im folgenden beschrieben und können z. B. im Repository enthaltenen Arduino-Sketch *SerialBuzzer.ino* über die Serielle Schnittstelle ausprobiert werden).
-Die Sprache ist natürlich gewöhnungsbedürftig zu lesen, ist aber halbwegs intuitiv in der Anwendung beim Transkribieren. Auch die komplizierteren Beispiele unten (wie "Raiders March") sind nach etwas Eingewöhnung in 5 Minuten geschrieben.
+Die Sprache ist natürlich gewöhnungsbedürftig zu lesen, ist aber halbwegs intuitiv in der Anwendung beim Transkribieren. Auch die komplizierteren Beispiele unten (wie "Thais Meditation") sind nach etwas Eingewöhnung in 5 Minuten geschrieben.
+Dadurch, dass die Melodie als String spezifiziert werden kann, kann die Schnittstelle leicht in verschiedene Anwendungen integriert werden. Im Beispiel weiter unten ist die Eingabe per serieller Schnittstelle möglich. Das läßt sich leicht adaptieren auf andere Schnittstellen, wie BT-Serial oder MQTT oder oder oder...
 
-Auch das nichtblockierende Playback wird erreicht, indem die Tongenerierung über einen Timer-Interrupt erfolgt. Das bewirkt eine hohe Genauigkeit in der Tonhöhe und Dauer, kommt aber auf Kosten der Portabilität: momentan ist die Umsetzung auf ESP32 beschränkt.
+Das nichtblockierende Playback wird erreicht, indem die Tongenerierung über einen Timer-Interrupt erfolgt. Das bewirkt eine hohe Genauigkeit in der Tonhöhe und Dauer, kommt aber auf Kosten der Portabilität: momentan ist die Umsetzung auf ESP32 beschränkt.
 
 ## Beschreibung des Beispiels *BuzzerSerial.ino*
 Anhand dieses Abschnitts soll die wesentliche API zur Anwendung der Bibliothek erläutert werden.
@@ -262,7 +263,7 @@ Zuerst was klassisches: Der Anfang von Thais Meditation von Jules Massenet
 ```
  !=88 | !/2 #f*5 d !/3 A d #f | ! b*2 #c1 d1 |  !/2 d*3 e !/5 #fg#fe#f !/2 a   A  |6 ! B*3, !/2 #cd, | #fe ! g*2, !/2 #de, | #fg, a, b, ! b B, | #c*2 d !/4 ed#cd | ! e*2 f*2 | #f*3, 
 ```
-80er Jahre Italo-Pop: Das Intro aus "Vamos a la playa
+80er Jahre Italo-Pop: Das Intro aus "Vamos a la playa" von Righeira
 ```
  !=600ar+1arar+0ar!*2ar!a1r!*2ar+1!erdrcrdr+0ar!*2ar!ar+1arar+0ar!*2ar!a1r!*2ar+1!erdrcr!*3e.!r!*3c.!r+!*3ar
 ```
@@ -278,4 +279,40 @@ Oder ganz "klassische Filmmusik": Der "Raiders March" von John Williams aus Indi
 ```
 
 
+### Von der Melodie zum Sound
+Für die klassische Hausautomatisierungsanwendung braucht man auch mal Alarmsounds o. ä., die man sich mit folgenden Tricks/Ergänzungen zusammenbauen kann:
 
+- die Geschwindigkeit kann auf bis zu 6000bpm erhöht werden, das ergibt schon bei Tonleitern nette Effekte:
+```
+!=3000+1CDEFGABc*4Rc*4BAGFEDCp
+```
+
+Dadurch verkürzt sich natürlich die Gesamtdauer ein. Um einen Sireneneffekt zu erzielen, müsste diese Sequenz mehrfach wiederholt werden. Es gibt aber eine Notationsmöglichkeit, eine Sequenz mehrfach zu wiederholen. Dazu muss **am Beginn** dieser Sequenz (führende Leerzeichen sind OK) ein Doppelpunkt unmittelbar (d. h. ohne Leerzeichen) gefolgt von einer Ganzzahl > 0 folgen.
+Es wird immer die komplette Melodiefolge wiederholt.
+
+Das folgende Beispiel bringt so DIE Tonfolge von Oben, nur noch schneller und 10 mal wiederholt (durch **r\*8** mit kurzer Pause zwischen den Wiederholungen).
+```
+:10 !=6000+1CDEFGABc*4Rc*4BAGFEDC r*8
+```
+
+Schon kleine Änderungen können ganz anders klingende Effekte erzeugen, hier z. B. wieder wie eben, aber die absteigende Tonleiter ist dies mal nicht dabei:
+```
+:10 !=6000+1CDEFGABc*4R
+```
+
+Töne können auch direkt durch Angabe ihrer Frequenz erzeugt werden. Dazu muss (anstatt eines Noten-Namens) das **@**-Zeichen direkt gefolgt von der Frequenz angegeben werden. Um Fließpunktzahlen zu vermeiden und trotzdem eine ausreichende Genauigkeit zu erzielen, wird die Frequenz als deci-Hz (10tel Hz) angegeben. **@4400** entspricht damit dem Kammerton **a** mit 440 Hz.
+
+So erzeugte Töne können nicht individuell oktaviert oder mit Vorzeichen versehen werden. Sie können jedoch auf die übliche Weise in der Länge beinflusst werden:
+```
+a @4400 @4400. @4400/4,@4400/4,@4400/4,@4400/4,
+```
+
+Das erzeugt insgesamt sieben mal den Ton **a** allerdings mit variablen Längen.
+
+Für die Tonerzeugung wird das vielleicht weniger gebraucht werden, allerdings lassen sich so andere Effekte darstellen: 
+```
+=1 @5 
+```
+Dadurch werden für eine Minute Klicks im Sekundenabstand erzeugt. Das könnte z. B. für einen "akustischen Countdown" stehen, wobei mit `buzzer.busy()` überprüft werden kann, ob der Countdown noch läuft (`buzzer.busy()` liefert dann **true**, **false** falls der Countdown abgelaufen ist).
+
+So, das wars. Viel Spass beim Ausprobieren.
