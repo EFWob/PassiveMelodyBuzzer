@@ -112,7 +112,7 @@ void loop() {
 ```
 
 Die "wichtigste" Zeile hier ist der Aufruf `buzzer.loop()`, der die Melodie weiterführt. Falls dieser Aufruf fehlen würde, würde der erste Ton der Melodie nicht beendet werden. Dieser Aufruf muss so oft wie möglich zyklisch erfolgen, ansonsten kann es sein, dass einige/alle Töne der Melodie ungewollt länger erklingen.
-`buzzer.loop();` ist übrigens wirkungsgleich mit `buzzer.busy()`. Liest sich nur bequemer, ansonsten könnte auch in der Zeile `buzzer.busy()` stehen.
+`buzzer.loop();` ist übrigens wirkungsgleich mit `buzzer.busy();`. Liest sich nur bequemer, ansonsten könnte auch in der Zeile `buzzer.busy();` stehen.
 
 Die Bedingung `if (serialReadLine(readLine))` ist dann erfüllt, falls im Seriellen Monitor eine Zeile eingegeben wurde. Idealerweise ist das eine gültige Melodie, diese wird dann durch den Aufruf `buzzer.playMelody(readLine, 1);` gestartet. (Der zweite Parameter **1** ist optional und sorgt nur für etwas Ausgaben auf dem seriellen Monitor).
 
@@ -125,11 +125,11 @@ Jede Melodie besteht aus einer Reihe von Tönen (und Pausen als Spezialton). Tö
 
 Momentan sind nur die Grundtöne (von **C..g**) bekannt, die auch immer in einer festen Länge (500msec) ertönen.
 
-Dies läßt sich ändern. Dabei können einzelne Parameter (z. B. die Länge) individuell für jede einzelne Note als auch für die gesamte Melodiefolge geändert werden (so dass z. B. jeder Ton eine andere vordefinierte Grundlänge als) 500msec hat. 
+Dies läßt sich ändern. Dabei können einzelne Parameter (z. B. die Länge) individuell für jede einzelne Note als auch für die gesamte Melodiefolge geändert werden (so dass z. B. jeder Ton eine andere vordefinierte Grundlänge als 500msec hat). 
 
 Im folgenden werden beide Varianten beschrieben.
 
-Die Erläuterungen lassen sich am besten nachvollziehen, indem sie am angeschlossenen seriellen Monitor nachvollzogen werden. Einige der nun folgenden Beispielsequenzen sind auch direkt im Sketch mit (am Ende als Kommentar) enthalten.
+Die Erläuterungen lassen sich am besten nachvollziehen, indem sie (nach Laden des Beispiels **Seriam angeschlossenen seriellen Monitor nachvollzogen werden. Einige der nun folgenden Beispielsequenzen sind auch direkt im Sketch mit (am Ende als Kommentar) enthalten.
 Falls mal was schief geht, und irritierende Klänge kommen, kann die Ausgabe der Töne durch Eingabe einer Leerzeile am seriellen Monitor gestoppt werden.
 
 Grundsätzlich ist der Parser für die Notation robust ausgelegt: wenn Zeichen auftauchen, die es laut Notationsvorschrift nicht geben dürfte (den Notennamen 'Z' z. B.) werden diese Zeichen ignoriert (übersprungen).
@@ -179,7 +179,7 @@ CDEFGAB cdefgab c1 d1e1f1g1a1b1 c2d2e2f2g2a2b2 c3d3e3f3g3a3b3 c4d4e4f4g4a4b4
 
 Damit gibt es nun drei (optionale) Suffixe, die Einfluss auf den Ton haben:
 - Oktavierung (bei Noten mit Kleinbuchstaben) durch angehängte Ziffern **1..4**
-- Verkürzung und/oder Verlängerung der Note durch mit **\*** oder **/** angehängte Verkürzungs-/Verlängerungsfaktoren
+- Verkürzung und/oder Verlängerung der Note durch mit **\*** und/oder **/** angehängte Verkürzungs-/Verlängerungsfaktoren
 - Verkürzung der Note durch angehängte **.** oder **,**
 
 Jede Note kann keinen, einen, zwei oder alle drei dieser Suffixe haben. Falls mehr als einer verwendet wird, muss die eben angegebene Reihenfolge eingehalten werden! Grundsätzlich darf sich in dem gesamten Konstrukt aus Notennamen und angehängten Suffixen nie ein Leerzeichen befinden, das muss immer alles kompakt zusammen geschrieben werden. Im folgenden nun mal wieder unsere schon legendäre C-Dur-Tonleiter, dieses Mal zur Abwechslung nach oben oktaviert (und mit unterschiedlichen Tonlängen, um die korrekte Notationsreihenfolge noch mal zu verdeutlichen).
@@ -284,13 +284,13 @@ Für die klassische Hausautomatisierungsanwendung braucht man auch mal Alarmsoun
 
 - die Geschwindigkeit kann auf bis zu 6000bpm erhöht werden, das ergibt schon bei Tonleitern nette Effekte:
 ```
-!=3000+1CDEFGABc*4Rc*4BAGFEDCp
+!=3000+1CDEFGABc*4Rc*4BAGFEDCr
 ```
 
-Dadurch verkürzt sich natürlich die Gesamtdauer ein. Um einen Sireneneffekt zu erzielen, müsste diese Sequenz mehrfach wiederholt werden. Es gibt aber eine Notationsmöglichkeit, eine Sequenz mehrfach zu wiederholen. Dazu muss **am Beginn** dieser Sequenz (führende Leerzeichen sind OK) ein Doppelpunkt unmittelbar (d. h. ohne Leerzeichen) gefolgt von einer Ganzzahl > 0 folgen.
+Dadurch verkürzt sich natürlich die Gesamtdauer. Um einen Sireneneffekt zu erzielen, müsste diese Sequenz mehrfach wiederholt werden. Um das wiederholte Aneinanderkopieren zu vermeiden (und wieder Speicherplatz zu sparen) gibt es eine Notationsmöglichkeit, eine Sequenz mehrfach zu wiederholen. Dazu muss **am Beginn** dieser Sequenz (führende Leerzeichen sind OK) ein Doppelpunkt unmittelbar (d. h. ohne Leerzeichen) gefolgt von einer Ganzzahl > 0 folgen.
 Es wird immer die komplette Melodiefolge wiederholt.
 
-Das folgende Beispiel bringt so DIE Tonfolge von Oben, nur noch schneller und 10 mal wiederholt (durch **r\*8** mit kurzer Pause zwischen den Wiederholungen).
+Das folgende Beispiel bringt so die Tonfolge von Oben, nur noch schneller und 10 mal wiederholt (durch **r\*8** mit kurzer Pause zwischen den Wiederholungen).
 ```
 :10 !=6000+1CDEFGABc*4Rc*4BAGFEDC r*8
 ```
@@ -313,6 +313,6 @@ Für die Tonerzeugung wird das vielleicht weniger gebraucht werden, allerdings l
 ```
 =1 @5 
 ```
-Dadurch werden für eine Minute Klicks im Sekundenabstand erzeugt. Das könnte z. B. für einen "akustischen Countdown" stehen, wobei mit `buzzer.busy()` überprüft werden kann, ob der Countdown noch läuft (`buzzer.busy()` liefert dann **true**, **false** falls der Countdown abgelaufen ist).
+Dadurch werden für eine Minute Klicks im Sekundenabstand erzeugt. Das könnte z. B. für einen "akustischen Countdown" stehen, wobei mit `buzzer.busy()` überprüft werden kann, ob der Countdown noch läuft (`buzzer.busy()` liefert dann **true**, ansonsten eben **false**, falls der Countdown abgelaufen ist).
 
 So, das wars. Viel Spass beim Ausprobieren.
