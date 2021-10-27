@@ -28,6 +28,8 @@ class PassiveMelodyBuzzer
 {
 public:
     PassiveMelodyBuzzer(int8_t pin, bool highAvtive = true);
+    PassiveMelodyBuzzer();
+    bool begin(int8_t pin, bool highAvtive = true);
     bool busy();
     inline bool loop() {return busy();};
     void stop();
@@ -53,6 +55,8 @@ protected:
     uint32_t _mul;
     int8_t _octave;
     uint8_t _verbose;
+
+    uint16_t _debugCount, _debugLength;
 
 
 };

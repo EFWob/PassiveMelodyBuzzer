@@ -196,16 +196,50 @@ toneItem_t tones[7] =
 
 PassiveMelodyBuzzer::PassiveMelodyBuzzer(int8_t pin, bool highActive)
 {
+
     _myBuzzer = PassiveBuzzer::getBuzzer(pin, highActive);
 
     _melody = NULL;_nextTone= NULL;
+    stop();
     
-    resetParams();
+    //resetParams();
     /*
     _duration=60;
     _scanPause = 0;
     */
 }
+
+PassiveMelodyBuzzer::PassiveMelodyBuzzer()
+{
+
+    _myBuzzer = NULL;
+
+    _melody = NULL;_nextTone= NULL;
+    stop();
+    
+    //resetParams();
+    /*
+    _duration=60;
+    _scanPause = 0;
+    */
+}
+bool PassiveMelodyBuzzer::begin(int8_t pin, bool highActive)
+{
+
+    if (!_myBuzzer)
+    _myBuzzer = PassiveBuzzer::getBuzzer(pin, highActive);
+
+    stop();
+    
+    return _myBuzzer != NULL;
+    //resetParams();
+    /*
+    _duration=60;
+    _scanPause = 0;
+    */
+}
+
+
 
 bool PassiveMelodyBuzzer::busy()
 {
@@ -264,12 +298,13 @@ bool ret = false;
 
 void PassiveMelodyBuzzer::playMelody(const char *melody, uint8_t verbose)
 {
-    stop();
     _verbose = verbose;
+    stop();
     if (melody)
     {
         while ((*melody > 0) && (*melody <= ' '))
             melody++;
+        _debugLength = strlen(melody);
         _repeat = (*melody == ':')?1:0;
         if (_repeat)
         {
@@ -294,7 +329,7 @@ void PassiveMelodyBuzzer::playMelody(const char *melody, uint8_t verbose)
         _melody = strdup(melody);
         if (_melody) 
             if (NULL == (_nextTone = playTone(_melody)))
-                _repeat = false;
+                _repeat = 0;
     }
 }
 
@@ -322,13 +357,20 @@ const char * PassiveMelodyBuzzer::playTone(const char *melodyPart)
     if (!scanSuccess)
     {
         if (0 == _repeat)
+        {
+            if (_verbose)
+            {
+                Serial.printf("Done after %d tones. (Input length was %d bytes)\r\n\r\n",
+                            _debugCount, _debugLength + 1);
+            } 
             stop();
+        }
         return NULL;
     }
 //    Serial.printf("Freq: %ld (Pause: %d), Duration: %ld\r\n", _scanFreq, _scanIsPause, _scanDuration);
     if (_verbose)
-        Serial.printf("Frequency: %4ld.%ldHz%s, Duration: %5ldms (+ %4ldms rest, total duration: %5ldms)\r\n", 
-            toneFreq / 10, toneFreq % 10, (0 == toneFreq?"  (Rest)":" (Sound)"), toneDuration,
+        Serial.printf("%4ld: Frequency: %4ld.%ldHz%s, Duration: %5ldms (+ %4ldms rest, total duration: %5ldms)\r\n", 
+            ++_debugCount, toneFreq / 10, toneFreq % 10, (0 == toneFreq?"  (Rest)":" (Sound)"), toneDuration,
             scanPause, toneDuration + scanPause);
 //    if (_scanIsPause)
     if (0 == toneFreq)
@@ -373,7 +415,7 @@ void PassiveMelodyBuzzer::stop()
         _speedup = 1;
 */        
         resetParams();
-
+        _debugCount = _debugLength = 0;
         if (_melody)
         {
             free((void *)_melody);
@@ -724,12 +766,8 @@ long octave = 0;
             _scanFreq=atoi(toneString);
             toneString = p;
             _scanSuccess = true;
-        }
-    }
-    else if ((tone >= 'a') && (tone <= 'g') || (tone == 'p'))
-    {
-        if (tone == 'p')
-        {
+        }  buzzer = new PassiveMelodyBuzzer(BUZZER_PIN);
+
             _scanIsPause = true;
             if (tone != *toneString)
                 _scanDuration = 2;
