@@ -43,7 +43,7 @@ Hier die 21 ändern, falls der Buzzer nicht an diesen Pin angeschlossen ist (die
 
 Für das Aufspielen aus dem **Tools**-Menü das passende Board auswählen (es sollte für jedes beliebige ESP32-Modul compilieren).
 
-Wenn alles korrekt funktioniert, sollten nach dem Aufspielen (bei jedem Reset) drei kurz aufeinanderfolgende Clicks und eine C-Dur-Tonleiter zu hören sein.
+Wenn alles korrekt funktioniert, sollten nach dem Aufspielen (bei jedem Reset) drei kurz aufeinanderfolgende Klicks und eine C-Dur-Tonleiter zu hören sein.
 
 Schauen wir mal rein:
 
@@ -129,6 +129,7 @@ Dies läßt sich ändern. Dabei können einzelne Parameter (z. B. die Länge) in
 Im folgenden werden beide Varianten beschrieben.
 
 Die Erläuterungen lassen sich am besten nachvollziehen, indem sie am angeschlossenen seriellen Monitor nachvollzogen werden. Einige der nun folgenden Beispielsequenzen sind auch direkt im Sketch mit (am Ende als Kommentar) enthalten.
+Falls mal was schief geht, und irritierende Klänge kommen, kann die Ausgabe der Töne durch Eingabe einer Leerzeile am seriellen Monitor gestoppt werden.
 
 Grundsätzlich ist der Parser für die Notation robust ausgelegt: wenn Zeichen auftauchen, die es laut Notationsvorschrift nicht geben dürfte (den Notennamen 'Z' z. B.) werden diese Zeichen ignoriert (übersprungen).
 
@@ -169,10 +170,10 @@ C/2 D/2 E/2 F G*2/3 A*2/3 B*2/3 c*2
 ```
 Wenn man den Grundschlag wie eben als Viertel annimmt, sind damit die ersten 3 Töne (halbiert) Achtel, gefolgt von einer Viertel-Note (ohne Veränderung), gefolgt von drei Triolen-Vierteln (**\*2** ergibt eine halbe, die durch **/3** wiederum auf ein drittel davon verkürzt wird) gefolgt von einer halben Note als Abschlußton (**\*2**).
 
-Nach der Tonlänge kümmern wir uns nun um die Tonhöhe. Zunächst mit Blick auf den darstellbaren Tonumfang. Bisher kennen wir die die 14 Grundtöne (in Reihenfolge der Tonhöhe) **C D E...** bis **...e f g**. Damit kann man schon was anfangen, aber nicht viel. 
-Daher läßt sich der Tonumfang durch Okavierung erweitern. Oktaviert (erhöht) werden können alle Noten mit Kleinbuchstaben, indem hinter die Note die Ziffer **1** (für eine Oktave höher) bis **4** (4 Oktaven höher) angehängt wird (wie üblich kein Leerzeichen zwischen Notennamen und der Ziffer!). Damit ist der volle Tonumfang nun (anhören auf eigene Gefahr, das zeigt einige Grenzen der Buzzer auf):
+Nach der Tonlänge kümmern wir uns nun um die Tonhöhe. Zunächst mit Blick auf den darstellbaren Tonumfang. Bisher kennen wir die die 14 Grundtöne (in Reihenfolge der Tonhöhe) **C D E...** bis **...e f g**. Damit kann man schon was anfangen, aber nicht alles machen. 
+Dazu läßt sich der Tonumfang durch Okavierung erweitern. Oktaviert (erhöht) werden können alle Noten mit Kleinbuchstaben, indem hinter die Note die Ziffer **1** (für eine Oktave höher) bis **4** (4 Oktaven höher) angehängt wird (wie üblich kein Leerzeichen zwischen Notennamen und der Ziffer!). Damit ist der volle Tonumfang nun (anhören auf eigene Gefahr, das zeigt physikalische Grenzen der Buzzer auf):
 ```
-C D E F G A B c d e f g a b c1 d1 e1 f1 g1 a1 b1 c2 d2 e2 f2 g2 a2 b2 c3 d3 e3 f3 g3 a3 b3 c4 d4 e4 f4 g4 a4 b4
+CDEFGAB cdefgab c1 d1e1f1g1a1b1 c2d2e2f2g2a2b2 c3d3e3f3g3a3b3 c4d4e4f4g4a4b4
 ```
 
 Damit gibt es nun drei (optionale) Suffixe, die Einfluss auf den Ton haben:
@@ -180,7 +181,7 @@ Damit gibt es nun drei (optionale) Suffixe, die Einfluss auf den Ton haben:
 - Verkürzung und/oder Verlängerung der Note durch mit **\*** oder **/** angehängte Verkürzungs-/Verlängerungsfaktoren
 - Verkürzung der Note durch angehängte **.** oder **,**
 
-Jede Note kann keinen, einen, zwei oder alle drei dieser Suffixe haben. Falls mehr als einer verwendet wird, muss die eben angegebene Reihenfolge eingehalten werden! Grundsätzlich darf in dem gesamten Konstrukt aus Notennamen und angehängten Suffixen nie ein Leerzeichen befinden, das muss immer alles kompakt zusammen geschrieben werden. Im folgenden nun mal wieder unsere schon legendäre C-Dur-Tonleiter, dieses Mal zur Abwechslung nach oben oktaviert (und mit unterschiedlichen Tonlängen, um die korrekte Notationsreihenfolge noch mal zu verdeutlichen).
+Jede Note kann keinen, einen, zwei oder alle drei dieser Suffixe haben. Falls mehr als einer verwendet wird, muss die eben angegebene Reihenfolge eingehalten werden! Grundsätzlich darf sich in dem gesamten Konstrukt aus Notennamen und angehängten Suffixen nie ein Leerzeichen befinden, das muss immer alles kompakt zusammen geschrieben werden. Im folgenden nun mal wieder unsere schon legendäre C-Dur-Tonleiter, dieses Mal zur Abwechslung nach oben oktaviert (und mit unterschiedlichen Tonlängen, um die korrekte Notationsreihenfolge noch mal zu verdeutlichen).
 
 ```
 c1/2, d1/2, e1/2, f1/2, g1/2, a1/2, b1/2, c2/2*5
@@ -195,7 +196,7 @@ Damit endlich mal was anderes kommt als die C-Dur-Tonleiter, ein letztes Element
 - Vorzeichen müssen direkt vor dem Notennamen angegeben werden, ohne Leerzeichen oder sonstiges dazwischen.
 - ein **#** erhöht die folgende Note um einen Halbton (**#f** beispielsweise klingt als *fis*)
 - ein **~** erniedrigt die folgende Note um einen Halbton (**~e** beispielsweise klingt als *es*)
-- für jeden der Grundtöne sind beide Vorzeichen definiert, wobei es zu enharmonischen Verwechslungen kommen kann, z. B.  **~a** (as) ist identisch mit **#g** (gis) oder **#e** (e-is) ist identisch mit **f**.
+- für jeden der Grundtöne sind beide Vorzeichen definiert, wobei es zu enharmonischen Verwechslungen kommen kann, so ist z. B.  **~a** (as) identisch mit **#g** (gis) oder **#e** (e-is) identisch mit **f**.
 
 Damit jetzt eine G-Dur-Tonleiter (mit **fis**), nach einer Pause gefolgt von einer F-Dur-Tonleiter
 ```
