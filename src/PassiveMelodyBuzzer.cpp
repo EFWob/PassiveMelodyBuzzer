@@ -342,7 +342,7 @@ void PassiveMelodyBuzzer::playMelody(String melody, uint8_t verbose)
 //20+1ce,e,e,e,c.c.c.c.e,e,e,c/2pPe.e.e,e,c,c.c.c.e,d,c,c,Pe/2d/3pPf/2e/3
 const char * PassiveMelodyBuzzer::playTone(const char *melodyPart)
 {
-    bool scanSuccess;
+    bool scanSuccess, abort;
     uint32_t toneFreq, toneDuration, scanPause;
     if (!_myBuzzer)
     {
@@ -351,17 +351,21 @@ const char * PassiveMelodyBuzzer::playTone(const char *melodyPart)
     }
 //    Serial.printf("Starting scanTone with '%s'\r\n", melodyPart);
     //const char *ret = scanTone(melodyPart);
-    const char* ret = scanTone(melodyPart, toneFreq, toneDuration, scanPause, scanSuccess);_scanPause = scanPause;
+    const char* ret = scanTone(melodyPart, toneFreq, toneDuration, scanPause, scanSuccess, abort);
+    _scanPause = scanPause;
 
     //if (!_scanSuccess)
     if (!scanSuccess)
     {
+        if (abort)
+            _repeat = 0;
         if (0 == _repeat)
         {
             if (_verbose)
             {
-                Serial.printf("Done after %d tones. (Input length was %d bytes)\r\n\r\n",
-                            _debugCount, _debugLength + 1);
+                Serial.printf("Done after %d tones. (Input length was %d bytes%s)\r\n\r\n",
+                            _debugCount, _debugLength + 1,
+                            abort?", Melody was aborted":"");
             } 
             stop();
         }
@@ -395,7 +399,13 @@ void PassiveMelodyBuzzer::click() {
 void PassiveMelodyBuzzer::resetParams()
 {
         _duration = 60000 / DEFAULT_BPM;
+        _rest0 = DEFAULT_REST0;
+        _rest1 = DEFAULT_REST1;
+        _rest2 = DEFAULT_REST2;
+        _rest3 = DEFAULT_REST3;
+        _rest4 = DEFAULT_REST4;
         _durationOverride = 0;
+        _restChar = _restCharOverride = 0;
         _div = 1;
         _mul = 1;
         _octave = 0;
@@ -442,14 +452,16 @@ const char* p1;
 
 const char* getDuration(const char* p, uint32_t& x)
 {
+/*    
     if ('.' == *p)
     {
         x = 60000 / DEFAULT_BPM;
         return p;
     }
+*/
     p = getNumber(p, x);
-    if (x > 60000)
-        x = 60000;
+    if (x > 6000)
+        x = 6000;
     else if (0 == x)
         x = DEFAULT_BPM;
     if (p)
@@ -491,12 +503,46 @@ const char* getMulDiv(const char* str, uint32_t& mul, uint32_t& div)
     return str;
 }
 
-const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & toneFreq, uint32_t& toneDuration,
-                        uint32_t& tonePause, bool &scanSuccess)
+const char* getLength(const char* in, uint32_t& result)
 {
-    char tone;
+const char* ret = in + 1;
+
+char lChar = *in;
+    if (('l' != lChar) && ('L' != lChar))
+        return NULL;
+    result = (lChar == tolower(lChar)?100:1000);
+    in++;
+    if (isDigit(*in))
+    {
+        uint32_t x;
+        ret = getNumber(in, x) + 1;
+        if (x > 0)
+            result = x * result; 
+    }
+    return ret;
+}
+
+bool getRestChar(char c, char& out) {
+    if (('.' == c) || (',' == c) || (';' == c) || (':' == c) || ('n' == c) || ('N' == c) || ('\'' == c))
+    {
+        if (isAlpha(c))
+            out = 0;
+        else 
+            out = c;
+        return true;
+    } 
+    return false;
+}
+
+const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & toneFreq, uint32_t& toneDuration,
+                        uint32_t& tonePause, bool &scanSuccess, bool &abort)
+{
+    char tone = 0;
     int sign = 0;
     bool prefixDone = false;
+    bool directLength = false;
+    char restChar;
+    abort = false;
 //    _scanIsPause = false;
     tonePause = 0;
     scanSuccess = false;
@@ -507,31 +553,37 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
         if (!(prefixDone = ((tone == 'r') || (tone == '@') || ((tone >= 'a') && (tone <= 'g'))))) {
             if ('!' == tone)
             {
-                uint32_t x;
+                uint32_t x;bool setOverride = false;char restCharx;bool setRelative = false;
+                //bool restReset = false;
                 _div = _mul = 1;
                 const char *p = NULL;
+/*                
                 if ('.' == toneString[1])
                 {
                     toneString++;
                     _duration = 60000 / DEFAULT_BPM;
+                    _restDefault = _restChar = 0;
                 }
-                else if ('=' == toneString[1])
+                else 
+*/
+                if ('=' == toneString[1])
                 {
                     toneString++;
                     p = getDuration(toneString + 1, x);
 //                    Serial.println("Scanning new duration.");
+                    _div = _mul = 1;
+                    _restChar = _restDefault = 0;
                     if (NULL != p)
                     {
                         toneString = p;
-                        _div = _mul = 1;
                         _duration = x>0?x:60000/DEFAULT_BPM;
+
 //                        Serial.printf("New duration: %ld\r\n", _duration);
                     }
                     else    
-//                        Serial.println("FAIL!")
-                        ;
+                        _duration = 60000/DEFAULT_BPM;
                 }
-                else if ('!' == toneString[1])
+                else if (setOverride = ('!' == toneString[1]))
                 {
                     toneString++;
                     p = getDuration(toneString + 1, x);
@@ -540,6 +592,7 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
                     {
                         toneString = p;
                         _div = _mul = 1;
+                        _restCharOverride = 0;
                         _durationOverride = x;
 //                        Serial.printf("New duration override: %ld\r\n", _durationOverride);
                     }
@@ -547,9 +600,10 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
 //                        Serial.println("FAIL!")
                         ;
                 }
-                else if (('*' == toneString[1]) || ('/' == toneString[1]))
+                else if (setRelative = (('*' == toneString[1]) || ('/' == toneString[1]))) 
                 {
-                    toneString = getMulDiv(toneString + 1, _mul, _div) - 1;
+                        toneString = getMulDiv(toneString + 1, _mul, _div) - 1;
+//                        _restChar = _restDefault;
 /*
                     _div = _mul = 1;
                     char c;
@@ -567,7 +621,7 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
                                 if ('*' == *toneString)
                                     _mul = _mul * x;
                                 else
-                                    _div = _div * x;
+                                    _div = _div * x;::scanTone
 //                            if ('*' == p[1] || ('/' == p[1]))
                                 toneString = p;
 //                            else
@@ -577,6 +631,43 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
 */
 //                    Serial.printf("Resulting multiplier are MUL = %ld, DIV=%ld\r\n", _mul, _div);
                 }
+                else if (('l' == toneString[1]) || ('L' == toneString[1]))
+                {
+                    uint32_t x;
+                    toneString++;
+//                    Serial.printf("Get length direct = %s\r\n", toneString);
+                    if (NULL != (p = getLength(toneString, x)))
+                    {
+                        toneString = p - 1;
+                        _duration = x;
+//                        Serial.printf("Duration is now: %ld\r\n", _duration);
+                    }
+                }
+                else                // Special case: ! w/o valid next char
+                {
+//                    Serial.println("Special set relative Empty!!!");
+                    setRelative = true;
+//                    _restChar = _restDefault;
+                    //restReset = true;
+                }
+//                if (!setRelative && !setOverride)
+                if (!setOverride)
+                {
+//                    if (!restReset)
+//                        _restDefault = 0;
+                    _restChar = _restDefault;
+                }
+                if (getRestChar(*(toneString + 1), restCharx))
+                {
+                    if (setOverride)
+                        _restCharOverride = restCharx;
+                    if (!setRelative)
+                        _restChar = _restDefault = restCharx;
+                    else
+                        _restChar = restCharx;
+                    toneString++;
+                }
+
             }
             else if (('+' == tone) || ('-' == tone))
             {
@@ -594,7 +685,36 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
                 char x = tolower(toneString[1]);
                 if ((x >= 'a') && (x <= 'g'))
                     sign = (tone == '#'?1:2);
+            } 
+            else if ('?' == tone)
+            {
+                if (getRestChar(*(++toneString), restChar))
+                {
+                    uint32_t x = 101;
+                    if (isDigit(*(toneString + 1)))
+                        toneString = getNumber(toneString + 1, x);
+                    if ('\'' == restChar)
+                        _rest0 = (x < 101)?x:DEFAULT_REST0;
+                    else if (',' == restChar)
+                        _rest1 = (x < 101)?x:DEFAULT_REST1;
+                    else if ('.' == restChar)
+                        _rest2 = (x < 101)?x:DEFAULT_REST2;
+                    else if (';' == restChar)
+                        _rest3 = (x < 101)?x:DEFAULT_REST3;
+                    else 
+                        _rest4 = (x < 101)?x:DEFAULT_REST4;
+                }
+                else
+                {
+                    _rest0 = DEFAULT_REST0;
+                    _rest1 = DEFAULT_REST1;
+                    _rest2 = DEFAULT_REST2;
+                    _rest3 = DEFAULT_REST3;
+                    _rest4 = DEFAULT_REST4;
+                }
             }
+            else if (abort = ('x' == tone))
+                return NULL;
         }
         toneString++;
     }
@@ -603,13 +723,16 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
 //        Serial.println("ScanTone Failed.");
         return NULL;
     }
+    scanSuccess = true;
+    char givenTone = *(toneString - 1);
     toneDuration = (_durationOverride != 0)?_durationOverride:_duration;
+    restChar = (_durationOverride != 0)?_restCharOverride:_restChar;
     if (_div * _mul != 1)
         toneDuration = toneDuration * _mul / _div;
     if (toneDuration < 1)
         toneDuration = 1;
-    scanSuccess = true;
-    char givenTone = *(toneString - 1);
+
+
 //    Serial.printf("Tone is: '%c' (was '%c')\r\n", tone, givenTone);
     if ('r' == tone)
     {
@@ -663,24 +786,58 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
         if (toneFreq < 1)
             toneFreq = 1;    
     }
-    if (('*' == *toneString) || ('/' == *toneString))
+    if (('*' == *toneString) || ('/' == *toneString)
+             || ('l' == *toneString) || ('L' == *toneString))
+            
     {
-        uint32_t mul, div;
-        if ((tone == 'r') && (givenTone == 'R'))
-            toneDuration = toneDuration / 2;
-        toneString = getMulDiv(toneString, mul, div);
-        if (1 != mul * div)
-            toneDuration = toneDuration * mul / div;
-    }
-    if ((('.' == *toneString) || (',' == *toneString)) && (0 != toneFreq))
+//        Serial.printf("Lengt specified: %s\r\n", toneString);Serial.flush();
+        if (isalpha(*toneString))
         {
-            tonePause = toneDuration * ('.' == *toneString?4:1);
-            tonePause = tonePause / 10;
+            toneString = getLength(toneString, toneDuration);
+            /*
+//            Serial.printf("Direct length='%s'\r\n", toneString + 1);Serial.flush();
+            uint32_t x;
+            uint32_t mul = ((*toneString == 'L')?1000:100);
+            toneString = getNumber(toneString + 1, x);
+            if (x < 1)
+                x = 1;
+            toneDuration = x * mul;
+            toneString++;
+        */
+        }    
+        else
+        {
+            uint32_t mul, div;
+            if ((tone == 'r') && (givenTone == 'R'))
+                toneDuration = toneDuration / 2;
+            toneString = getMulDiv(toneString, mul, div);
+            if (1 != mul * div)
+                toneDuration = toneDuration * mul / div;
+            if (toneDuration < 1)
+                toneDuration = 1;
+        }
+    }
+//    Serial.printf("Tone duration: %ld\r\nToneString=%s\r\n", toneDuration, toneString);Serial.flush();
+    if (getRestChar(*toneString, restChar))
+    {
+        if (0 == toneFreq)
+            restChar = 0;
+        toneString++;
+    }
+//    if ((('.' == *toneString) || (',' == *toneString)) && (0 != toneFreq))
+    if (restChar)
+        restChar = (',' == restChar?_rest1:('.' == restChar?_rest2:(';' == restChar?_rest3:
+                    ('\'' == restChar?_rest0:_rest4))));
+    if (restChar)
+        {
+//            tonePause = toneDuration * ('.' == restChar?4:1);
+            tonePause = toneDuration * restChar;
+            tonePause = tonePause / 100;
             if (tonePause < toneDuration)
                 toneDuration -= tonePause;
             else
                 tonePause = 0;
-            toneString++;
+//            toneString++;
         }
 //    Serial.printf("ScanTone done, remaining String is: %s\r\n", toneString);
     return toneString;

@@ -142,15 +142,19 @@ CDEFGABc
 ```
 
 ### Modifikationen einzelner Töne
-Zunächst fällt auf, dass die Töne ziemlich direkt ineinander übergehen (quasi legato). Falls man möchte, dass die Noten abgesetzt erklingen, kann an die Note ein **,** oder ein **.** angehängt werden. Dass sorgt dafür, dass die entsprechende Noten ein wenig (mit Komma) oder stark (durch Punkt) verkürzt wird. Zwischen Note und **,** bzw. **.** darf kein Leerzeichen eingefügt werden!
+Zunächst fällt auf, dass die Töne ziemlich direkt ineinander übergehen (quasi legato). Falls man möchte, dass die Töne abgesetzt erklingen, kann an die Note (als "Kürzungszeichen") ein **'**, ein **,**, ein **.**, ein **;** oder ein **:** angehängt werden. Dass sorgt dafür, dass die entsprechende Ton um 10 (bei **'**), 25 (bei **,**), 32 (bei **.**) 50 (bei **;**) oder 75 Prozent (bei **:**) verkürzt erklingt und die Restzeit kein Ton (Ruhe/Pause) ertönt. Zwischen Note und Kürzungszeichen darf kein Leerzeichen eingefügt werden!
 
-Durch die folgende Zeile wird drei mal die C-Dur-Tonleiter gespielt, zunächst ohne, dann mit geringer und dann mit starker Kürzung der einzelnen Noten. Der Unterschied sollte hörbar (und auf dem seriellen Monitor auch sichtbar) sein.
+Durch die folgende Zeile wird sechs mal die C-Dur-Tonleiter gespielt, zunächst ohne, dann mit geringer und dann mit immer länger werden Kürzung der einzelnen Töne. Der Unterschied sollte hörbar (und auf dem seriellen Monitor auch sichtbar) sein.
 ```
-C D E F G A B c      C, D, E, F, G, A, B, c,      C. D. E. F. G. A. B. c.
+CDEFGABc  C'D'E'F'G'A'B'c' C,D,E,F,G,A,B,c, C.D.E.F.G.A.B.c. C;D;E;F;G;A;B;c; C:D:E:F:G:A:B:c:
 ```
 
-Wichtig zum Verständnis ist, dass dabei der Schlag (Beat) nicht geändert wird. Jede Note startet weiterhin 500ms nach der vorhergehenden. Die eingefügte Pause wird von der klingenden Länge abgezogen.
+Wichtig zum Verständnis ist, dass dabei der Schlag (Beat) nicht geändert wird. Jeder Ton startet weiterhin 500ms nach dem vorhergehenden. Die eingefügte Pause wird von der klingenden Länge abgezogen.
 
+Teilweise sind die Unterschiede nicht eindeutig unterscheidbar. Trotzdem ist es beim Schreiben von Melodien sinnvoll, alle diese Kürzungsmöglichkeiten zu haben. Unter der Annahme, dass der Grundschlag eine Viertel ist, dann ist:
+- **c,** eine punktierte Achtel mit 16tel-Pause
+- **c;** eine Achtel gefolgt von einer Achtel Pause
+- **c:** eine 16tel gefolgt von einer Pause in der Länge einer punktierten Achtel
 
 Richtige Pausen sind in der Musik wichtig, daher gibt es sie hier auch als "Note" mit dem Namen **r** oder **R** (von Englisch **rest**). Der Unterschied zwischen Groß- und Kleinschreibung liegt hier nicht in der Tonhöhe, sondern in der Länge: **r** ist genau so lang wie jede Note auch (500 ms), **R** ist doppelt so lang (1 sec).
 
@@ -164,6 +168,7 @@ Nun können wir uns an die Notenlängen wagen. Bisher hat jede Note die exakt gl
 - eine Verkürzung wird eingeleitet durch ein **/** direkt (ohne Leerzeichen) hinter dem Notennamen wiederum direkt gefolgt von einer positiven Ganzzahl (>0, ohne Vorzeichen). Die zugehörige Note wird auf die bisher gültige Standardlänge (500ms) dividiert durch um die angegebene Ganzzahl verkürzt.
 - beides kann kombiniert werden: **C\*3/4**, wodurch die Note auf 375ms (500 * 3 / 4) der ursprünglichen Länge verkürzt wird.
 - bei einer kombinierten Angabe ist es egal, ob Verlängerung oder Verkürzung zuerst angegeben werden. **C/4\*3** ist identisch zum vorherigen Beispiel. Aus musikalischem Verständnis heraus ist diese Variante ggf. einprägsamer. Wenn man sich Standardschlag von 120 bpm (Schlägen pro Minute, entspricht einer Notenlänge von 500ms) z. B. als Viertel-Note vorstellt, wird daraus zunächst durch **/4** eine 16-tel Note, deren Länge multipliziert mit 3 einer punktierten Achtel entspricht.
+- eine Note kann nie kürzer werden als 1 msec. Je kürzer und tiefer die Note, je wahrscheinlicher ist es, dass keine hörbare Ausgabe mehr erfolgt.
 
 Hier mal eine C-Dur-Tonleiter mit unterschiedlichen Notenlängen.
 ```
@@ -180,15 +185,15 @@ CDEFGAB cdefgab c1 d1e1f1g1a1b1 c2d2e2f2g2a2b2 c3d3e3f3g3a3b3 c4d4e4f4g4a4b4
 Damit gibt es nun drei (optionale) Suffixe, die Einfluss auf den Ton haben:
 - Oktavierung (bei Noten mit Kleinbuchstaben) durch angehängte Ziffern **1..4**
 - Verkürzung und/oder Verlängerung der Note durch mit **\*** und/oder **/** angehängte Verkürzungs-/Verlängerungsfaktoren
-- Verkürzung der Note durch angehängte **.** oder **,**
+- Verkürzung der klingenden Länge durch angehängte **'** oder **,** oder **.** oder **;** oder **:**
 
 Jede Note kann keinen, einen, zwei oder alle drei dieser Suffixe haben. Falls mehr als einer verwendet wird, muss die eben angegebene Reihenfolge eingehalten werden! Grundsätzlich darf sich in dem gesamten Konstrukt aus Notennamen und angehängten Suffixen nie ein Leerzeichen befinden, das muss immer alles kompakt zusammen geschrieben werden. Im folgenden nun mal wieder unsere schon legendäre C-Dur-Tonleiter, dieses Mal zur Abwechslung nach oben oktaviert (und mit unterschiedlichen Tonlängen, um die korrekte Notationsreihenfolge noch mal zu verdeutlichen).
 
 ```
-c1/2, d1/2, e1/2, f1/2, g1/2, a1/2, b1/2, c2/2*5
+c1/2, d1/2, e1/2' f1/2; g1/2, a1/2: b1/2, c2/2*5
 ```
 
-Pausen können ebenfalls durch Faktoren verlängert oder verkürzt werden. In diesem Fall geht die Verlängerung und Verkürzung unabhängig von Groß oder Kleinschreibung (**R** vs. **r**) immer von identischer Grundlänge aus (bei Standard 120 bpm also 500ms). Siehe folgendes Beispiel (Oktavierungen von Pausen und Verkürzungen durch angehängte **,** oder **.** werden toleriert aber ignoriert, haben also keinerlei musikalischen Effekt):
+Pausen können ebenfalls durch Faktoren verlängert oder verkürzt werden. In diesem Fall geht die Verlängerung und Verkürzung unabhängig von Groß oder Kleinschreibung (**R** vs. **r**) immer von identischer Grundlänge aus (bei Standard 120 bpm also 500ms). Siehe folgendes Beispiel (Oktavierungen von Pausen und Verkürzungen (durch angehängte Verkürzungszeichen wie **,** oder **.** werden toleriert aber ignoriert, haben also keinerlei musikalischen Effekt):
 
 ```
 c1 d1 e1 f1 g1 r a1 R*4/2. b1 r1*2/4, c2*2
@@ -207,21 +212,28 @@ g a b c1 d1 e1 #f1 g1*2 R f g a ~b c1 d1 e1 f1*2
 Damit sind alle Möglichkeiten, eine einzelne Note in Tonlänge und Tonhöhe zu verändern, besprochen. Es folgt die Beschreibung der Möglichkeiten, die Parameter Geschwindigkeit und Tonhöhe einer (Teil-) Melodie insgesamt zu ändern.
 
 ### "Permanente" Modifikation von Tonhöhe und Geschwindigkeit
-Das erste, was dringend zu ändern wäre, ist die Festlegung auf den Grundschlag von 120 Schlägen pro Minute. Das ist ganz einfach gemacht, indem die Zeichensequenz **!=** direkt gefolgt von einer positiven (Ganzzahl) größer 0 und kleiner/gleich 6000 angegeben wird. Diese Ganzzahl (wie immer ohne Leerzeichen zwischen **!=** und Zahl) definiert die ab jetzt für alle folgenden Noten der Melodie geltende Schlagzahl. Standard ist 120 Noten pro Minute (bpm), 240 ist also doppelt so schnell, wie man an folgendem Beispiel hört, wo die gleiche recht bekannte Sequenz nur mit anderer Geschwindigkeit wiederholt wird.
+#### "Permanente" Modifikation der Geschwindigkeit
+Das erste, was dringend zu ändern wäre, ist die Festlegung auf den Grundschlag von 120 Schlägen pro Minute (bpm). Das ist ganz einfach gemacht, indem die Zeichensequenz **!=** wie folgt verwendet wird:
+- **!=** gefolgt von einer Ganzzahl, setzt die bpm entsprechend der angegebenen Zahl mit folgenden Restriktionen:
+  - ist die Zahl kleiner 1, wird der Standard von 120bpm gesetzt
+  - nach oben ist die Zahl auf 6000 begrenzt (größere Werte werden auf 6000 gesetzt)
+- folgt keine Zahl, wird ebenfalls auf den Standard von 120bpm zurückgesetzt.
 
 ```
 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !=240 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4,
 
 ```
 
-Prinzipiell kann die Geschwindigkeit damit beliebig oft verändert werden. Diese absolute Setzung empfiehlt sich jedoch wenn möglich nur einmalig am Anfang zu machen, danach sollten ebenfalls mögliche relative Geschwindigkeitsänderungen genutzt werden. Diese werden analog wie für die einzelnen Noten angegeben spezifiziert:
+Prinzipiell kann die Geschwindigkeit damit beliebig oft verändert werden. Es empfiehlt sich jedoch, solche absolute Setzung nur einmalig am Anfang zu machen, danach sollten ebenfalls mögliche relative Geschwindigkeitsänderungen genutzt werden. Relative Geschwindigkeitsänderungen werden analog wie für die einzelnen Noten angegeben spezifiziert:
 - **!\*** direkt gefolgt von einer Ganzzahl > 1 verlängert alle folgenden Noten um den angegebenen Faktor. **!\*2** verdoppelt also die Länge (und halbiert somit effektiv den Grundschlag) für alle folgenden Noten
+  - folgt keine Zahl, wird relative Geschwindigkeitsänderung zurückgesetzt.
 - **!/** direkt gefolgt von einer Ganzzahl > 1 verkürzt die Länge aller folgenden Noten um den angegebenen Faktor **!/2** halbiert also die Länge (und verdoppelt somit effektiv den Grundschlag) für alle folgenden Noten
+  - folgt keine Zahl, wird relative Geschwindigkeitsänderung zurückgesetzt.
 - der Grundschlag ist dabei der durch die letzte **!=**-Sequenz gesetzte Schlag (bzw. der Standard von 120 bpm, falls keine individuelle Einstellung erfolgte).
 - wie bei den individuellen Verkürzungen/Verlängerungen für einzelne Noten vorher, können auch hier beide Varianten zur Darstellung nicht-ganzzahliger Faktoren verwendet werden. **!/4*3** verkürzt alle nachfolgden Noten auf 75% der ursprünglichen Länge (und vergrößert somit effektiv den Grundschlag auf 4 Drittel des bisherigen Wertes)
 - Für die einzelnen Noten gilt der so eingestellte Grundschlag, individuelle Verkürzungen/Verlängerungen der Noten bleiben natürlich möglich, und beziehen sich dabei auf den aktuell gültigen Grundschlag.
 - Die Änderung des Grundschlags gilt immer bis zur nächsten Änderung des Grundschlags, maximal bis zum Ende der Melodie. (Jede Melodie startet immer mit dem Grundschlag von 120 bpm)
-- Relative Änderungen des Grundschlags können zurückgenommen werden durch ein einzelnes **!**. Dadurch wird der Grundschlag wieder auf den durch die letzte **!=**-Sequenz gesetzten Schlag (bzw. den Standard von 120 bpm, falls keine individuelle Einstellung erfolgte) gesetzt
+- Relative Änderungen des Grundschlags können zurückgenommen werden durch ein einzelnes **!**. Dadurch wird der Grundschlag wieder auf den durch die letzte **!=**-Sequenz gesetzten Schlag (bzw. den Standard von 120 bpm, falls keine individuelle Einstellung erfolgte) gesetzt. **!** ist eine Spezialform (Kurzform) und äquivalent zu **!/** oder **/\*** (ohne nachfolgende Zahl).
 
 
 In den folgenden zwei Zeilen ist die erste Zeile eine Kopie des letzten Beispiels. Die zweite Zeile ist musikalisch identisch, äquivalent zum eben gehörten, allerdings mit relativer Geschwindigkeitsänderung (**!/2**)
@@ -237,7 +249,50 @@ cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !/2 cdef g*2,g*2, a.a.a.a. g*4, a.a.
 !=140 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r !/2 cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4, r ! cdef g*2,g*2, a.a.a.a. g*4, a.a.a.a. g*4,
 ```
 
-Neben der "globalen" Änderung der Tondauer kann auch die Tonhöhe (durch Oktavierung) auf globaler Ebene verschoben werden.
+Man kann auch die Grundlänge aller nachfolgende Töne direkt angeben, anstatt über **!=** die Schlagzahl festzulegen:
+- **!L** setzt die Tonlänge für die folgenden Töne auf 
+  - die Anzahl Sekunden, die direkt (ohne Leerzeichen) folgt: **!L3** z. B. auf 3 Sekunden
+  - oder auf 1 Sekunde, falls keine Zahl oder die Zahl **0** folgt
+- **!l** setzt die Tonlänge für die folgenden Töne auf 
+  - die Anzahl Zehntel-Sekunden, die direkt (ohne Leerzeichen) folgt: **!l3** z. B. auf 3 Zehntel entsprechend 300ms
+  - oder auf 1 Zehntel-Sekunde, falls keine Zahl oder die Zahl **0** folgt
+
+Auch die so gesetzte Länge kann durch nachfolgende relative Geschwindigkeitsänderungen variiert werden. So erklingt z. B. bei **!l1!/3c** der Ton für (gerundete) 33 msec.
+
+Jetzt noch der Tricky Part: bei jeder Modifikation der Geschwindigkeit kann auch ein "permanenter" Verkürzungsfaktor gesetzt werden, in dem eines der bekannten Verkürzungszeichen (**'** oder **,** oder **.** oder **;** oder **:**) an die Geschwindigkeitsänderung ergänzend angehängt wird. 
+- **!=300.** setzt bpm auf 300 und standardmäßig einen '.' für alle folgenden Noten.
+- **!/3*2;** setzt die Tonlänge auf zwei Drittel und setzt standardmäßig ein ';' für alle folgenden Noten.
+  - ein Verkürzungsfaktor an einer relativen Geschwindigkeitsangabe wie hier 
+- **!L2,** setzt die Tonlänge auf 2 Sekunden und setzt standardmäßig ein ',' für alle folgenden Noten.
+- **!='** setzt bpm auf den Standardwert von 120 und setzt standardmäßig ein ''' für alle folgenden Noten.
+
+Damit können jetzt mehrere Verkürzungsfaktoren im Spiel sein:
+- ein Verkürzungsfaktor kann einer "absoluten" Geschwindigkeitsänderung (beginnend mit **!=** oder **!l** oder **!L**) angefügt sein.
+- ein Verkürzungsfaktor kann einer (danach folgenden) "relativen" Geschwindigkeitsänderung (beginnend mit **!/** oder **!\*** oder als Spezialform nur bestehend aus dem einzelnen Ausrufezeichen **!**) angefügt sein
+- ein Verkürzungsfaktor kann einer danach folgenden Note angefügt sein.
+
+Dann gilt folgende Vorrangsregel:
+- der direkt an der Note angegebene Verkürzugsfaktor hat immer Vorrang. Sollte an der Note kein Verkürzungsfaktor (**'** oder **,** oder **.** oder **;** oder **:**) angegeben sein, wird der von der letzten relativen oder absoluten Geschwindigkeitsänderung her bekannte Verkürzungsfaktor vererbt
+  - Soll die Note definitiv keinen Verkürzungsfaktor erben, ist der Buchstabe **n** statt eines der bekannten Verkürzungsfaktoren zu setzen: **!/2.cdn** setzt den Verkürzungsfaktor für die Note **c** auf **.** und hebt den Verkürzungsfaktor für die folgende Note **d** auf.
+- folgt auf eine relative Geschwindigkeitsänderung ein Verkürzungsfaktor, so gilt dieser Verkürzungsfaktor, so lange diese relative Geschwindigkeitsänderung gilt, ansonsten gilt der Verkürzungsfaktor der letzten absoluten Geschwindigkeitssetzung weiter.
+  - soll für diese relative Geschwindigkeitsänderung kein Verkürzungsfaktor gelten, so ist wieder der Buchstabe **n** statt eines der bekannten Verkürzungsfaktoren zu setzen. 
+
+Diese Möglichkeit zu verwenden bietet sich insbesondere dann an, wenn in einem Stück viele Noten mit nachfolgender Pause zu finden sind. Ein Beispiel ist "Vamos a la Playa" (siehe unten). In der Originalversion ist die Klangfolge immer Note Pause Note Pause etc...:
+
+```
+ !=600ar+1arar+0ar!*2ar!a1r!*2ar+1!erdrcrdr+0ar!*2ar!ar+1arar+0ar!*2ar!a1r!*2ar+1!erdrcr!*3e.!r!*3c.!r+!*3ar
+```
+
+Die folgende Version ist vom musikalischen Ergebnis her identisch, verbraucht aber nur 77 statt 108 bytes:
+
+```
+!=300;a+1aa+0a!a*2!a1!*2a+1!edcd+0a!*2a!a+1aa+0a!*2a!a1!*2a+1!edc!/*2;ec+a'r 
+```
+
+
+
+#### "Permanente" Modifikation der Tonhöhe (Oktavierung) 
+Neben der "permamenten" Änderung der Tondauer kann auch die Tonhöhe (durch Oktavierung) auf globaler Ebene verschoben werden.
 - ein **+1** bis **+4** erhöht alle nachfolgenden Töne um jeweils 1 bis 4 Oktaven bezogen auf den ursprünglichen Notenwert.
 - ein **-1** bis **-4** verringert die Höhe aller nachfolgenden Töne jeweils um 1 bis 4 Oktaven.
 - durch **+** oder **-** ohne nachfolgende Ziffer wird eine eventuelle Oktavierung wieder aufgehoben (ebenso durch **+0** oder **-0**)
