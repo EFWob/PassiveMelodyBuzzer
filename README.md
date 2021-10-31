@@ -6,7 +6,7 @@ Sorry, English readme is still in the making. (I would appreciate if some native
 In a nutshell, this library allows to play melodies using a passive buzzer connected to a digital output pin. 
 Aim was to allow playback in non-blocking mode and have a simple yet powerful way to write down a tune in ASCII.
 As a very basic example the String **"CDEFGABc"** will play a C-Major-scale.
-Nonblocking playback is achieved by using a timer interrupt to generate the sound. That allows for a high precision in pitch and sound duration. However, this also gives a portability issue: currently it is Espressif ESP32 only.
+Nonblocking playback is achieved by using a timer interrupt to generate the sound. That allows for a high precision in pitch and sound duration. However, this also gives a portability issue: currently it is Espressif ESP32/ESP8266 only (and ESP8266 is even somewhat experimental).
 
 Tested with Arduino and PlatformIO. 
 Example "BuzzerSerial" is in Arduino and allows to test the functionality by playing melodies entered on the Serial monitor input. Source code is commented, so you will get the basic API.
@@ -25,7 +25,7 @@ Das hat geklappt, allerdings bedeutet das, dass man wenigstens grundlegendes Ver
 Die Sprache ist natürlich gewöhnungsbedürftig zu lesen, ist aber halbwegs intuitiv in der Anwendung beim Transkribieren. Auch die komplizierteren Beispiele unten (wie "Thais Meditation") sind nach etwas Eingewöhnung in 5 Minuten geschrieben.
 Dadurch, dass die Melodie als String spezifiziert werden kann, kann die Schnittstelle leicht in verschiedene Anwendungen integriert werden. Im Beispiel weiter unten ist die Eingabe per serieller Schnittstelle möglich. Das läßt sich leicht adaptieren auf andere Schnittstellen, wie BT-Serial oder MQTT oder oder oder...
 
-Das nichtblockierende Playback wird erreicht, indem die Tongenerierung über einen Timer-Interrupt erfolgt. Das bewirkt eine hohe Genauigkeit in der Tonhöhe und Dauer, kommt aber auf Kosten der Portabilität: momentan ist die Umsetzung auf ESP32 beschränkt.
+Das nichtblockierende Playback wird erreicht, indem die Tongenerierung über einen Timer-Interrupt erfolgt. Das bewirkt eine hohe Genauigkeit in der Tonhöhe und Dauer, kommt aber auf Kosten der Portabilität: momentan ist die Umsetzung auf ESP32 und (wenn auch noch leicht experimentell) ESP8266 beschränkt.
 
 ## Beschreibung des Beispiels *BuzzerSerial.ino*
 Anhand dieses Abschnitts soll die wesentliche API zur Anwendung der Bibliothek erläutert werden.
@@ -53,12 +53,17 @@ Schauen wir mal rein:
 #include <PassiveMelodyBuzzer.h>
 /*
  * At the bottom of the sketch are a few examples of melodies to play (by pasting them to the serial monitor input).
- * At the time of writing, this library can only be used for ESP32.
+ * At the time of writing, this library can only be used for ESP32 or ESP8266 (experimental).
  * A passive buzzer is required (active buzzers can play only one specific frequency).
  * The volume of the playback can not be changed by software setting.
  */
-
-#define BUZZER_PIN 21                     // IO Pin the buzzer is connected to (AZ-Touch mod has it connected to gpio 21)
+#if defined(ESP32)
+#define BUZZER_PIN 21                     // IO Pin the buzzer is connected to 
+                                          // (AZ-Touch mod has it connected to GPIO 21 for ESP32 DevKit)
+#elif defined(ESP8266)
+#define BUZZER_PIN  16                    // IO Pin the buzzer is connected to                                           
+                                          // (AZ-Touch mod has it connected to GPIO 16 of Wemos D1 mini)
+#endif
 
 PassiveMelodyBuzzer buzzer(BUZZER_PIN, true);   // Create buzzer object. Second (optional) parameter specifies, if buzzer is HIGH active.
                                                 // Defaults to "true". If you do not hear three clicks but the C major scale, try "false".
@@ -72,7 +77,8 @@ Weiter mit *setup()*:
 
 ```
 void setup() {
-  Serial.begin(115200);                   
+  Serial.begin(115200);    
+  delay(500);Serial.flush();Serial.println("\r\n");
   for(int i = 0; i < 3; i++)              // For 3 times 
   {
     buzzer.click();                           // generate "click" sound
@@ -262,7 +268,7 @@ Auch die so gesetzte Länge kann durch nachfolgende relative Geschwindigkeitsän
 Jetzt noch der Tricky Part: bei jeder Modifikation der Geschwindigkeit kann auch ein "permanenter" Verkürzungsfaktor gesetzt werden, in dem eines der bekannten Verkürzungszeichen (**'** oder **,** oder **.** oder **;** oder **:**) an die Geschwindigkeitsänderung ergänzend angehängt wird. 
 - **!=300.** setzt bpm auf 300 und standardmäßig einen '.' für alle folgenden Noten.
 - **!/3*2;** setzt die Tonlänge auf zwei Drittel und setzt standardmäßig ein ';' für alle folgenden Noten.
-  - ein Verkürzungsfaktor an einer relativen Geschwindigkeitsangabe wie hier 
+  - ein Verkürzungsfaktor an einer relativen Geschwindigkeitsangabe wie hier wird abgebrochen, wenn ein gültiges Verkürzungszeichen erkannt wird. **!/3\*2;** wie eben setzt die Tonlänge auf 2/3 und standardmäßig ein ';' für nachfolgende Noten. **!/3;\*2** setzt die Tonlänge auf 3 und standardmäßig ein ';' für nachfolgende Töne (das angehängte **\*2** ist hier nicht mehr gültig und wird verworfen).
 - **!L2,** setzt die Tonlänge auf 2 Sekunden und setzt standardmäßig ein ',' für alle folgenden Noten.
 - **!='** setzt bpm auf den Standardwert von 120 und setzt standardmäßig ein ''' für alle folgenden Noten.
 

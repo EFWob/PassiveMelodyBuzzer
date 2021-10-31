@@ -2,19 +2,28 @@
 #include <PassiveMelodyBuzzer.h>
 /*
  * At the bottom of the sketch are a few examples of melodies to play (by pasting them to the serial monitor input).
- * At the time of writing, this library can only be used for ESP32.
+ * At the time of writing, this library can only be used for ESP32 or ESP8266 (experimental).
  * A passive buzzer is required (active buzzers can play only one specific frequency).
  * The volume of the playback can not be changed by software setting.
  */
-
-#define BUZZER_PIN 21                     // IO Pin the buzzer is connected to (AZ-Touch mod has it connected to gpio 21)
+#if defined(ESP32)
+#define BUZZER_PIN 21                     // IO Pin the buzzer is connected to 
+                                          // (AZ-Touch mod has it connected to GPIO 21 for ESP32 DevKit)
+#elif defined(ESP8266)
+#define BUZZER_PIN  16                    // IO Pin the buzzer is connected to                                           
+                                          // (AZ-Touch mod has it connected to GPIO 16 of Wemos D1 mini)
+#endif
 
 PassiveMelodyBuzzer buzzer(BUZZER_PIN, true);   // Create buzzer object. Second (optional) parameter specifies, if buzzer is HIGH active.
                                                 // Defaults to "true". If you do not hear three clicks but the C major scale, try "false".
 
 
+
+
+
 void setup() {
-  Serial.begin(115200);                   
+  Serial.begin(115200);    
+  delay(500);Serial.flush();Serial.println("\r\n");
   for(int i = 0; i < 3; i++)              // For 3 times 
   {
     buzzer.click();                           // generate "click" sound

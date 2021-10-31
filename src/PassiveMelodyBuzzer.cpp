@@ -1,15 +1,32 @@
 #include "PassiveMelodyBuzzer.h"
+#if defined(ESP32)
+#define NUM_TIMERS  4
+#define TIMER_IDS {0, 1, 2, 3}
+#elif defined(ESP8266)
+#define NUM_TIMERS  1
+#define TIMER_IDS {1}
+#else
+#error This Platform is not (yet) supported by the library!
+#endif
+
+const uint8_t timer_ids[NUM_TIMERS] = TIMER_IDS;
+bool timer_alloc[NUM_TIMERS];
+
 
 struct timerData_t {
     bool value, autostop, silence;
     uint32_t countDown;
-    uint8_t tick, pin;
-
+    uint8_t pin;
+#if defined(ESP8266)
+    uint16_t pinMask;
+#endif
 };
 
 volatile timerData_t timerData[4];
 
-static void IRAM_ATTR onTimer(int id) {
+#if defined(ESP32)
+static void IRAM_ATTR onTimer(int id) 
+{
 volatile timerData_t *tData = &timerData[id];    
     if (tData->countDown)
     {
@@ -24,16 +41,16 @@ volatile timerData_t *tData = &timerData[id];
     }
     else if (tData->autostop)
         return;
-    if (0 == tData->tick)
+//    if (0 == tData->tick)
     {
-      tData->tick = 10;
+//      tData->tick = 10;
       if (!tData->silence)
         {
         tData->value = !tData->value;
         digitalWrite(tData->pin, tData->value); 
         }
     }
-    tData->tick = tData->tick -1;
+//    tData->tick = tData->tick -1;
 }
 
 static void IRAM_ATTR onTimer0() {
@@ -51,43 +68,158 @@ static void IRAM_ATTR onTimer2() {
 static void IRAM_ATTR onTimer3() {
     onTimer(3);
 }
+#elif defined(ESP8266)
+
+#include <user_interface.h>
+// https://www.esp8266.com/viewtopic.php?p=34411
+#define TIMER1_DIVIDE_BY_1              0x0000
+#define TIMER1_DIVIDE_BY_16             0x0004
+#define TIMER1_DIVIDE_BY_256            0x0008
+
+#define TIMER1_AUTO_LOAD                0x0040
+#define TIMER1_ENABLE_TIMER             0x0080
+#define TIMER1_FLAGS_MASK               0x00cc
+
+#define TIMER1_NMI                      0x8000
+
+#define TIMER1_COUNT_MASK               0x007fffff        // 23 bit timer
+
+void IRAM_ATTR interruptHandler() {
+volatile timerData_t *tData = &timerData[0];    
+    if (tData->countDown)
+    {
+      if (0 == (tData->countDown = tData->countDown -1))
+        if (tData->autostop)
+          {
+//            tData->value = false;
+            pinMode(tData->pin, INPUT);
+            digitalWrite(tData->pin, LOW);
+            return;
+          }
+    }
+    else if (tData->autostop)
+        return;
+//    if (0 == tData->tick)
+    {
+//      tData->tick = 10;
+      if (!tData->silence)
+        {
+        if (16 == tData->pin)    
+        {
+//        pinMode(16, OUTPUT);
+//        digitalWrite(16, !digitalRead(16));
+//        pinMode(4, OUTPUT);
+//        digitalWrite(4, !digitalRead(4));
+//        return;    
+
+            if (GP16I & 1)
+                GP16O &= ~1;
+            else
+                GP16O |= 1;
+        }
+        else
+            if (GPIP(tData->pin))
+                GPOC = tData->pinMask;
+            else
+                GPOS = tData->pinMask;
+        }
+    }
+}
+
+
+#endif
+
+
+void PassiveBuzzer::lowLevelStop(){
+    pinMode(_pin, INPUT);
+#if defined(ESP32)
+    timerAlarmDisable(_timer);
+#elif defined(ESP8266)   
+    ETS_FRC1_INTR_DISABLE();
+    TM1_EDGE_INT_DISABLE();
+    RTC_REG_WRITE(FRC1_CTRL_ADDRESS, 0);
+//    Serial.println("ESP8266 Interrupt disabled!");
+#endif
+    digitalWrite(_pin, !_highActive);
+    pinMode(_pin, OUTPUT);
+}
+
+void PassiveBuzzer::loadTimer(long frequencyDeciHz) {
+#if defined(ESP32)
+    timerAlarmWrite(_timer, 100000000l / frequencyDeciHz, true);
+    timerAlarmEnable(_timer);
+#elif defined(ESP8266)
+    RTC_CLR_REG_MASK(FRC1_INT_ADDRESS, FRC1_INT_CLR_MASK);
+    RTC_REG_WRITE(FRC1_LOAD_ADDRESS, (25000000 / frequencyDeciHz) & TIMER1_COUNT_MASK);
+    ETS_FRC_TIMER1_INTR_ATTACH((void (*)(void *))interruptHandler, NULL);
+    TM1_EDGE_INT_ENABLE();
+    ETS_FRC1_INTR_ENABLE();
+    RTC_REG_WRITE(FRC1_CTRL_ADDRESS, TIMER1_FLAGS_MASK & (TIMER1_DIVIDE_BY_16 | TIMER1_AUTO_LOAD | TIMER1_ENABLE_TIMER));
+#endif    
+}
 
 
 uint8_t PassiveBuzzer::_size = 0;
  
-PassiveBuzzer * PassiveBuzzer::getBuzzer(int pin, bool highActive)
+PassiveBuzzer * PassiveBuzzer::getBuzzer(int pin, bool highActive, uint8_t timerId)
 {
-    
+uint8_t idx;    
+#if defined(ESP32)
     if (pin >= 0)
-        if (255 != allocateTimer())
-            return (new PassiveBuzzer(pin, highActive));
+#elif defined(ESP8266)
+    if ((pin >= 0) && (pin <= 16))
+#endif
+        if (255 != (idx = allocateTimer(timerId)))
+            return (new PassiveBuzzer(pin, highActive, idx));
     return NULL;
 }
 
-uint8_t PassiveBuzzer::allocateTimer()
+uint8_t PassiveBuzzer::allocateTimer(uint8_t timerId)
 {
+int i;
 uint8_t ret = 255;
-    if (_size < 3)
-        return _size++;
+    if (_size < NUM_TIMERS)
+        if (255 == timerId) 
+        {
+            for(int i = 0;i < NUM_TIMERS;i++)
+                if (!timer_alloc[i])
+                    break;
+            if (i < NUM_TIMERS)
+                ret = i;
+        }
+        else 
+        {
+            for (i = 0;i < NUM_TIMERS;i++)
+                if (timer_ids[i] == timerId)
+                    break;
+            if ((i < NUM_TIMERS) && !timer_alloc[i])
+                ret = i;
+        }
+    if (ret != 255)
+    {
+        timer_alloc[ret] = true;
+        _size++;
+    }
     return ret;
 }
 
-PassiveBuzzer::PassiveBuzzer(int pin, bool highActive)
+PassiveBuzzer::PassiveBuzzer(int pin, bool highActive, uint8_t id)
 {
     _highActive = highActive;
-    _timer = NULL;
 //    if ((pin >= 0) && (_size < 3))
     {
         _pin = pin;
         //digitalWrite(pin, LOW);
         pinMode(pin, INPUT);
-        _id = _size - 1;
+        _id = id;
         timerData[_id].value = false;
         timerData[_id].autostop = true;
-        timerData[_id].tick = 10;
+//        timerData[_id].tick = 10;
         timerData[_id].pin = pin;
         timerData[_id].countDown = 0;
         timerData[_id].silence = false;
+#if defined(ESP32)
+        _timer = NULL;
         _timer = timerBegin(_id, 4, true);//div 80
         timerAlarmDisable(_timer);
         if (_id == 0)
@@ -99,68 +231,113 @@ PassiveBuzzer::PassiveBuzzer(int pin, bool highActive)
         else if (_id == 3)
             timerAttachInterrupt(_timer, &onTimer3, true);
         //_size++;
+#elif defined(ESP8266)
+        Serial.printf("ESP8266 timer allocated with idx=%d, pin =%d\r\n", _id, pin);
+        timerData[_id].pinMask = 1 << pin; 
+#endif
+        lowLevelStop();
     }
 } 
 
 void PassiveBuzzer::tone(long frequencyDeciHz, long durationCentiSec, bool autoStop){
-    timerAlarmDisable(_timer);
-    digitalWrite(_pin, LOW);
-    pinMode(_pin, OUTPUT);
+    //timerAlarmDisable(_timer);
+    //digitalWrite(_pin, LOW);
+    //pinMode(_pin, OUTPUT);
+    lowLevelStop();
+
     timerData[_id].value = LOW;
-    timerData[_id].tick = 10;
+//    timerData[_id].tick = 10;
     timerData[_id].silence = false;
     timerData[_id].autostop = autoStop;
-    timerAlarmWrite(_timer, 10000000l / frequencyDeciHz, true);
-    timerData[_id].countDown = durationCentiSec * frequencyDeciHz / 500; 
+    timerData[_id].countDown = durationCentiSec * frequencyDeciHz / 5000; 
     if (1 > timerData[_id].countDown)
         timerData[_id].countDown = 1;
 //    Serial.printf("Timer alarm enable for %ld\r\n", _timer);
-    timerAlarmEnable(_timer);
+
+//    timerAlarmWrite(_timer, 100000000l / frequencyDeciHz, true);
+//    timerAlarmEnable(_timer);
     //delay(durationMs);
+    loadTimer(frequencyDeciHz);
 }
 
 void PassiveBuzzer::click(){
+/*    
+    pinMode(_pin, INPUT);
+#if defined(ESP32)    
     timerAlarmDisable(_timer);
+#elif defined(ESP8266)
+    ETS_FRC1_INTR_DISABLE();
+    TM1_EDGE_INT_DISABLE();
+    RTC_REG_WRITE(FRC1_CTRL_ADDRESS, 0);
+#endif
     digitalWrite(_pin, _highActive);
     pinMode(_pin, OUTPUT);
+*/
+    lowLevelStop();
     timerData[_id].value = HIGH;
-    timerData[_id].tick = 10;
+//    timerData[_id].tick = 10;
     timerData[_id].silence = false;
     timerData[_id].autostop = true;
-    timerAlarmWrite(_timer, 10000000l / 5000, true);
     timerData[_id].countDown = 5; 
-    timerAlarmEnable(_timer);
+
+    loadTimer(50000);
+//    timerAlarmWrite(_timer, 100000000l / 50000, true);
+//    timerAlarmEnable(_timer);
     //delay(durationMs);
 }
 
 void PassiveBuzzer::pause(long durationCentiSec) {
+/*    
+    pinMode(_pin, INPUT);
+#if defined(ESP32)    
     timerAlarmDisable(_timer);
+#elif defined(ESP8266)
+    ETS_FRC1_INTR_DISABLE();
+    TM1_EDGE_INT_DISABLE();
+    RTC_REG_WRITE(FRC1_CTRL_ADDRESS, 0);
+#endif
     digitalWrite(_pin, LOW);
+*/
+    lowLevelStop();
     timerData[_id].value = LOW;
-    timerData[_id].tick = 10;
+//    timerData[_id].tick = 10;
     timerData[_id].silence = true;
     timerData[_id].autostop = true;
-    timerAlarmWrite(_timer, 10000000l / 500, true);
     timerData[_id].countDown = durationCentiSec;
     if (1 > timerData[_id].countDown)
         timerData[_id].countDown = 1;
-    timerAlarmEnable(_timer);
+//    timerAlarmWrite(_timer, 100000000l / 5000, true);
+//    timerAlarmEnable(_timer);
+    loadTimer(5000);
 } 
 
 void PassiveBuzzer::stop() {
-    timerAlarmDisable(_timer);
+/*
     pinMode(_pin, INPUT);
+#if defined(ESP32)
+    timerAlarmDisable(_timer);
+#elif defined(ESP8266)
+    ETS_FRC1_INTR_DISABLE();
+    TM1_EDGE_INT_DISABLE();
+    RTC_REG_WRITE(FRC1_CTRL_ADDRESS, 0);
+#endif
     digitalWrite(_pin, LOW);
+*/
+    lowLevelStop();
+    pinMode(_pin, INPUT);
+
     timerData[_id].value = LOW;
-    timerData[_id].tick = 10;
+//    timerData[_id].tick = 10;
     timerData[_id].silence = true;
     timerData[_id].autostop = true;
     timerData[_id].countDown = 0;
-
 } 
 
 
 bool PassiveBuzzer::busy() {
+#if defined(ESP32) || defined(ESP8266)
+    yield();
+#endif
     return (0 != timerData[_id].countDown);
 }
 
@@ -409,6 +586,7 @@ void PassiveMelodyBuzzer::resetParams()
         _div = 1;
         _mul = 1;
         _octave = 0;
+        _nextTone = NULL;
 }
 
 void PassiveMelodyBuzzer::stop()
@@ -416,7 +594,7 @@ void PassiveMelodyBuzzer::stop()
     if (_myBuzzer)
     {
         _myBuzzer->stop();
-//        Serial.println("STOP called for Buzzer!");
+    //    Serial.println("STOP called for Buzzer!");
 /*
         _scanPause = 0;
         _nextTone = NULL;

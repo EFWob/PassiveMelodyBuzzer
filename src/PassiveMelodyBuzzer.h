@@ -12,21 +12,25 @@
 class PassiveBuzzer 
 {
 public:
-    static PassiveBuzzer *getBuzzer(int pin, bool highActive = true);
+    static PassiveBuzzer *getBuzzer(int pin, bool highActive = true, uint8_t timerId = 0xff);
     void tone(long frequencyDeciHz, long durationCentiSec, bool autoStop=true);
     void pause(long durationCentiSec);
     void click();
     void stop();
     bool busy();
     uint32_t busyCount();
-    static uint8_t allocateTimer();
+    static uint8_t allocateTimer(uint8_t timerId = 0xff);
     uint8_t getId() {return _id;};
 private:        
     static uint8_t _size;
     bool _highActive;
-    PassiveBuzzer(int pin, bool highActive); 
+    PassiveBuzzer(int pin, bool highActive, uint8_t id); 
+    void lowLevelStop();
+    void loadTimer(long frequencyDeciHz);
     uint8_t _pin, _id;
+#if defined(ESP32)
     hw_timer_t* _timer = NULL;
+#endif
 };
 
 class PassiveMelodyBuzzer

@@ -1,6 +1,10 @@
 #include <Arduino.h>
 #include <PassiveMelodyBuzzer.h>
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>
+#else
 #include <WiFi.h>
+#endif
 #include <PubSubClient.h>
 
 /*
@@ -12,12 +16,19 @@
  * 
  */
 
-#define BUZZER_PIN 21                     // IO Pin the buzzer is connected to (AZ-Touch mod has it connected to gpio 21)
-#define WIFI_SSID "Your WiFi SSID"   
-#define WIFI_PASS "Your secret WiFi Password"
+#if defined(ESP32)
+#define BUZZER_PIN 21                     // IO Pin the buzzer is connected to 
+                                          // (AZ-Touch mod has it connected to GPIO 21 for ESP32 DevKit)
+#elif defined(ESP8266)
+#define BUZZER_PIN  16                    // IO Pin the buzzer is connected to                                           
+                                          // (AZ-Touch mod has it connected to GPIO 16 of Wemos D1 mini)
+#endif
+
+#define WIFI_SSID "YourWiFi SSID"   
+#define WIFI_PASS "YourWiFi Password"
 
 
-#define MQTT_BROKER "test.mosquitto.org"
+#define MQTT_BROKER (const char *)NULL    // Or set MQTT-Broker
 #define MQTT_PORT   1883
 #define MQTT_USER   (const char *)NULL    // Or set user name for MQTT broker access if needed
 #define MQTT_PASS   (const char *)NULL    // Or set user password for MQTT broker access if needed
@@ -27,6 +38,7 @@
 const char* pinkPanther = "-1!=130!/2#de*2.r#fg*2.r#de.#fg.c1b.eg.b#a*4!/3ragede*7.!/2Rr#de*2.r#fg*2.r#de.#fg.c1b.gb.e1#d1*9.RR"
                           "#de*2.r#fg*2.r#de.#fg.c1b.eg.b#a*4!/3ragede*7.!/2RRe1.d1b.ag.e.!/4#aa*3,#aa*3,#aa*3#aa*3!/3ged!/2e,e*5,";
 
+const char* vamos = "!=600c1r!*2c1a+1c!*dr!*2drdrded!*3c";
 
 PassiveMelodyBuzzer buzzer;
 
@@ -38,23 +50,32 @@ PubSubClient client(wifiClient);
 void setup() {
   buzzer.begin(BUZZER_PIN);
   Serial.begin(115200);                   
+  Serial.println();Serial.println();
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-  while (WL_CONNECTED != WiFi.status())
+  while ((WL_CONNECTED != WiFi.status()) && (millis() < 10000))
+  { 
     if (!buzzer.busy())
       buzzer.playMelody(pinkPanther);
+  }
+  if (WL_CONNECTED != WiFi.status())
+    Serial.println("WiFi Fail!");
   buzzer.stop();
-  client.setServer(MQTT_BROKER, MQTT_PORT);
-  client.setCallback(callback);
-  while(!client.connected())
-    reconnect();
-  buzzer.stop();
+  if ((NULL != MQTT_BROKER) && (WL_CONNECTED != WiFi.status()))
+  {
+    client.setServer(MQTT_BROKER, MQTT_PORT);
+    client.setCallback(callback);
+  }
 }
 
 
 void loop() {
   buzzer.loop();                          // Keep on playing 
-  client.loop();
+  if ((NULL != MQTT_BROKER) && (WL_CONNECTED != WiFi.status()))
+    if (!client.connected())
+      reconnect();
+    else
+      client.loop();
   String readLine;
   if (serialReadLine(readLine))           // A line from Serial available?
   {
@@ -73,23 +94,30 @@ char s[length + 1];
 }
 
 
-void reconnect() {
+bool reconnect() {
+  bool ret;
   // Loop until we're reconnected
-  while (!client.connected()) {
-    Serial.print("Attempting MQTT connection...");
+  ret = client.connected();
+  if (!ret)
+    {
+    char s[50];
+    sprintf(s, "buz%ld%ld", random(LONG_MAX), random(LONG_MAX));
+    Serial.print("Attempting MQTT connection as ");Serial.print(s);Serial.print("...");
     // Attempt to connect
-    if (client.connect("arduinoClient", MQTT_USER, MQTT_PASS)) {
+    if (ret = client.connect(s, MQTT_USER, MQTT_PASS)) {
       Serial.println("connected");
       // ... and resubscribe
       client.subscribe(MQTT_TOPIC);
+      ret = true;
     } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
+      Serial.printf("failed, rc=%d\r\n", client.state());
+      buzzer.playMelody(vamos);
+      while (buzzer.busy())
+        ;
       // Wait 5 seconds before retrying
-      delay(5000);
+      }
     }
-  }
+  return ret;
 }
 
 
