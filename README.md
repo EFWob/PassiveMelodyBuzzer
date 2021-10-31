@@ -360,6 +360,12 @@ Schon kleine Änderungen können ganz anders klingende Effekte erzeugen, hier z.
 ```
 :10 !=6000+1CDEFGABc*4R
 ```
+Falls es nicht auf die genaue Anzahl an Wiederholungen ankommt, sondern der Klang eine definierte Zeitdauer ertönen soll, so kann hinter die Zahl ein **s** (für Sekunden) oder ein **m** (für Millisekunden) angefügt werden. Der Klang ertönt dann entsprechend lange, wobei auch bei Erreichen der Endzeit beliebig in der Klangfolge abgebrochen wird. In folgendem Beispiel ist die Tonleiter nicht nach 3 Sekunden durch:
+
+```
+:3s CDEFGABc
+```
+
 
 Töne können auch direkt durch Angabe ihrer Frequenz erzeugt werden. Dazu muss (anstatt eines Noten-Namens) das **@**-Zeichen direkt gefolgt von der Frequenz angegeben werden. Um Fließpunktzahlen zu vermeiden und trotzdem eine ausreichende Genauigkeit zu erzielen, wird die Frequenz als deci-Hz (10tel Hz) angegeben. **@4400** entspricht damit dem Kammerton **a** mit 440 Hz.
 
@@ -375,5 +381,11 @@ Für die Tonerzeugung wird das vielleicht weniger gebraucht werden, allerdings l
 =1 @5 
 ```
 Dadurch werden für eine Minute Klicks im Sekundenabstand erzeugt. Das könnte z. B. für einen "akustischen Countdown" stehen, wobei mit `buzzer.busy()` überprüft werden kann, ob der Countdown noch läuft (`buzzer.busy()` liefert dann **true**, ansonsten eben **false**, falls der Countdown abgelaufen ist).
+
+Auch schön (etwas eingerostete Telefonklingel):
+
+```
+:1s:!l/20,+3cAF#Fr
+```
 
 So, das wars. Viel Spass beim Ausprobieren.

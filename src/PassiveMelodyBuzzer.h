@@ -9,29 +9,7 @@
 #define DEFAULT_REST3   50
 #define DEFAULT_REST4   75
 
-class PassiveBuzzer 
-{
-public:
-    static PassiveBuzzer *getBuzzer(int pin, bool highActive = true, uint8_t timerId = 0xff);
-    void tone(uint32_t frequencyDeciHz, uint32_t durationCentiSec, bool autoStop=true);
-    void pause(uint32_t durationCentiSec);
-    void click();
-    void stop();
-    bool busy();
-    uint32_t busyCount();
-    static uint8_t allocateTimer(uint8_t timerId = 0xff);
-    uint8_t getId() {return _id;};
-private:        
-    static uint8_t _size;
-    bool _highActive;
-    PassiveBuzzer(int pin, bool highActive, uint8_t id); 
-    void lowLevelStop();
-    void loadTimer(long frequencyDeciHz);
-    uint8_t _pin, _id;
-#if defined(ESP32)
-    hw_timer_t* _timer = NULL;
-#endif
-};
+class PassiveBuzzer;
 
 class PassiveMelodyBuzzer
 {
@@ -39,6 +17,7 @@ public:
     PassiveMelodyBuzzer(int8_t pin, bool highAvtive = true);
     PassiveMelodyBuzzer();
     bool begin(int8_t pin, bool highAvtive = true);
+    bool begin();
     bool busy();
     inline bool loop() {return busy();};
     void stop();
@@ -46,8 +25,8 @@ public:
     void playMelody(const char *melody, uint8_t verbose = 0);
     void playMelody(String melody, uint8_t verbose = 0);
     void click();
-    uint32_t busyCount() {return _myBuzzer?_myBuzzer->busyCount():0;};
-    uint8_t getId() {if (_myBuzzer) return _myBuzzer->getId(); return 255;};
+    uint32_t busyCount();
+    uint8_t getId();
 protected:
     const char* scanTone(const char*, uint32_t& toneFreq, uint32_t& toneDuration,
                         uint32_t& tonePause, bool& scanSuccess, bool& abort);
@@ -55,6 +34,7 @@ protected:
     PassiveBuzzer* _myBuzzer;    
     int _playMelodyState;
     int _repeat;
+    uint32_t _repeatTimeout, _repeatStart;
     const char * _melody;
     const char *_nextTone;
     uint32_t _scanPause;
