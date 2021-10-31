@@ -554,7 +554,7 @@ void PassiveMelodyBuzzer::resetParams()
         _rest3 = DEFAULT_REST3;
         _rest4 = DEFAULT_REST4;
         _durationOverride = 0;
-        _restChar = _restCharDefault = _restCharOverride = 0;
+        _restChar = _restDefault = _restCharOverride = 0;
         _div = 1;
         _mul = 1;
         _octave = 0;
