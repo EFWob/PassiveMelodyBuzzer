@@ -15,7 +15,7 @@ bool timer_alloc[NUM_TIMERS];
 
 struct timerData_t {
     bool value, autostop, silence;
-    uint32_t countDown;
+    long countDown;
     uint8_t pin;
 #if defined(ESP8266)
     uint16_t pinMask;
@@ -150,11 +150,11 @@ void PassiveBuzzer::loadTimer(long frequencyDeciHz) {
     timerAlarmEnable(_timer);
 #elif defined(ESP8266)
     RTC_CLR_REG_MASK(FRC1_INT_ADDRESS, FRC1_INT_CLR_MASK);
-    RTC_REG_WRITE(FRC1_LOAD_ADDRESS, (25000000 / frequencyDeciHz) & TIMER1_COUNT_MASK);
+    RTC_REG_WRITE(FRC1_LOAD_ADDRESS, (25000000 * 16 / frequencyDeciHz) & TIMER1_COUNT_MASK);
     ETS_FRC_TIMER1_INTR_ATTACH((void (*)(void *))interruptHandler, NULL);
     TM1_EDGE_INT_ENABLE();
     ETS_FRC1_INTR_ENABLE();
-    RTC_REG_WRITE(FRC1_CTRL_ADDRESS, TIMER1_FLAGS_MASK & (TIMER1_DIVIDE_BY_16 | TIMER1_AUTO_LOAD | TIMER1_ENABLE_TIMER));
+    RTC_REG_WRITE(FRC1_CTRL_ADDRESS, TIMER1_FLAGS_MASK & (TIMER1_DIVIDE_BY_1 | TIMER1_AUTO_LOAD | TIMER1_ENABLE_TIMER));
 #endif    
 }
 
@@ -239,17 +239,26 @@ PassiveBuzzer::PassiveBuzzer(int pin, bool highActive, uint8_t id)
     }
 } 
 
-void PassiveBuzzer::tone(long frequencyDeciHz, long durationCentiSec, bool autoStop){
+void PassiveBuzzer::tone(uint32_t frequencyDeciHz, uint32_t durationCentiSec, bool autoStop){
     //timerAlarmDisable(_timer);
     //digitalWrite(_pin, LOW);
     //pinMode(_pin, OUTPUT);
+    unsigned long long countdown = 0ULL;
     lowLevelStop();
 
     timerData[_id].value = LOW;
 //    timerData[_id].tick = 10;
     timerData[_id].silence = false;
     timerData[_id].autostop = autoStop;
-    timerData[_id].countDown = durationCentiSec * frequencyDeciHz / 5000; 
+    countdown = (unsigned long long)durationCentiSec * (unsigned long long)frequencyDeciHz / 5000ULL;
+    timerData[_id].countDown = (uint32_t)countdown;
+/*    timerData[_id].countDown = durationCentiSec * frequencyDeciHz;
+    timerData[_id].countDown /= 5000ul; 
+    Serial.printf("Calculation %ld * % ld = (%ld / %ld) = %ld\r\n", 
+    durationCentiSec, frequencyDeciHz, durationCentiSec* frequencyDeciHz, 5000l, 
+               ((durationCentiSec* frequencyDeciHz) / 5000l));
+*/
+    //Serial.printf("CountDown: %ld\r\n", timerData[_id].countDown);
     if (1 > timerData[_id].countDown)
         timerData[_id].countDown = 1;
 //    Serial.printf("Timer alarm enable for %ld\r\n", _timer);
@@ -286,7 +295,7 @@ void PassiveBuzzer::click(){
     //delay(durationMs);
 }
 
-void PassiveBuzzer::pause(long durationCentiSec) {
+void PassiveBuzzer::pause(uint32_t durationCentiSec) {
 /*    
     pinMode(_pin, INPUT);
 #if defined(ESP32)    

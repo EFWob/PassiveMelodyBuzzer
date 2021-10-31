@@ -13,8 +13,8 @@ class PassiveBuzzer
 {
 public:
     static PassiveBuzzer *getBuzzer(int pin, bool highActive = true, uint8_t timerId = 0xff);
-    void tone(long frequencyDeciHz, long durationCentiSec, bool autoStop=true);
-    void pause(long durationCentiSec);
+    void tone(uint32_t frequencyDeciHz, uint32_t durationCentiSec, bool autoStop=true);
+    void pause(uint32_t durationCentiSec);
     void click();
     void stop();
     bool busy();

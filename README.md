@@ -70,8 +70,8 @@ PassiveMelodyBuzzer buzzer(BUZZER_PIN, true);   // Create buzzer object. Second 
 ```
 Durch diesen Abschnitt wird:
 - die Bibliothek eingebunden (`#include <PassiveMelodyBuffer.h>`)
-- der Pin als Konstante definiert (`#define BUZZER_PIN 21`) 
-- das Buzzer-Objekt erstellt (`PassiveMelodyBuzzer buzzer(BUZZER_PIN, true);`). Der erste Parameter ist die definierte Pin-Nummer. Der zweite Parameter ist optional (wird als *true* angenommen, falls weggelassen) und legt fest, ob der Buzzer *HIGH*- oder *LOW*-aktiv ist. Pragmatischer Ansatz: wenn sowohl die angesprochenen Klicks als auch die Tonleiter zu hören sind, ist der Parameter OK. Falls die Klicks fehlen und nur die Tonleiter zu Anfang kommt, sollte der Parameter inverviert werden (*false* statt *true*). Falls gar nichts kommt, ist es Zeit, den Aufbau :electric_plug: zu prüfen...
+- der Pin als Konstante definiert (vordefiniert hier als `#define BUZZER_PIN 21` für ESP32 bzw. `#define BUZZER_PIN 21` für den ESP8266). Dieser Wert ist an den eigenen Aufbau anzupassen. 
+- das Buzzer-Objekt erstellt (`PassiveMelodyBuzzer buzzer(BUZZER_PIN, true);`). Der erste Parameter ist die definierte Pin-Nummer, an den der Buzzer angeschlossen ist. Der zweite Parameter ist optional (wird als *true* angenommen, falls weggelassen) und legt fest, ob der Buzzer *HIGH*- oder *LOW*-aktiv ist. Pragmatischer Ansatz: wenn sowohl die angesprochenen Klicks als auch die Tonleiter zu hören sind, ist der Parameter OK. Falls die Klicks fehlen und nur die Tonleiter zu Anfang kommt, sollte der Parameter inverviert werden (*false* statt *true*). Falls gar nichts kommt, ist es Zeit, den Aufbau :electric_plug: zu prüfen...
 
 Weiter mit *setup()*:
 

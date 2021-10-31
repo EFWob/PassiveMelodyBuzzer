@@ -58,10 +58,10 @@ void setup() {
     if (!buzzer.busy())
       buzzer.playMelody(pinkPanther);
   }
+  buzzer.stop();
   if (WL_CONNECTED != WiFi.status())
     Serial.println("WiFi Fail!");
-  buzzer.stop();
-  if ((NULL != MQTT_BROKER) && (WL_CONNECTED != WiFi.status()))
+  else if (NULL != MQTT_BROKER)
   {
     client.setServer(MQTT_BROKER, MQTT_PORT);
     client.setCallback(callback);
@@ -71,7 +71,7 @@ void setup() {
 
 void loop() {
   buzzer.loop();                          // Keep on playing 
-  if ((NULL != MQTT_BROKER) && (WL_CONNECTED != WiFi.status()))
+  if ((NULL != MQTT_BROKER) && (WL_CONNECTED == WiFi.status()))
     if (!client.connected())
       reconnect();
     else
