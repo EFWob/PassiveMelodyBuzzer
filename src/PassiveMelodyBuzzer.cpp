@@ -214,13 +214,14 @@ uint8_t PassiveBuzzer::_size = 0;
 PassiveBuzzer * PassiveBuzzer::getBuzzer(int pin, bool highActive, uint8_t timerId)
 {
 uint8_t idx;    
-#if defined(ESP32)
     if (pin >= 0)
+#if defined(ESP32)
+        if (pin <= 32)
 #elif defined(ESP8266)
-    if ((pin >= 0) && (pin <= 16))
+        if (pin <= 16)
 #endif
-        if (255 != (idx = allocateTimer(timerId)))
-            return (new PassiveBuzzer(pin, highActive, idx));
+            if (255 != (idx = allocateTimer(timerId)))
+                return (new PassiveBuzzer(pin, highActive, idx));
     return NULL;
 }
 
@@ -229,9 +230,10 @@ uint8_t PassiveBuzzer::allocateTimer(uint8_t timerId)
 int i;
 uint8_t ret = 255;
     if (_size < NUM_TIMERS)
+    {
         if (255 == timerId) 
         {
-            for(int i = 0;i < NUM_TIMERS;i++)
+            for(i = 0;i < NUM_TIMERS;i++)
                 if (!timer_alloc[i])
                     break;
             if (i < NUM_TIMERS)
@@ -245,6 +247,7 @@ uint8_t ret = 255;
             if ((i < NUM_TIMERS) && !timer_alloc[i])
                 ret = i;
         }
+    }
     if (ret != 255)
     {
         timer_alloc[ret] = true;
@@ -358,10 +361,10 @@ toneItem_t tones[7] =
     {1960, 2077, 1850}
 };
 
-PassiveMelodyBuzzer::PassiveMelodyBuzzer(int8_t pin, bool highActive)
+PassiveMelodyBuzzer::PassiveMelodyBuzzer(int8_t pin, bool highActive, uint8_t timerId)
 {
 
-    _myBuzzer = PassiveBuzzer::getBuzzer(pin, highActive);
+    _myBuzzer = PassiveBuzzer::getBuzzer(pin, highActive, timerId);
 
     _melody = NULL;_nextTone= NULL;
     stop();
@@ -377,16 +380,18 @@ PassiveMelodyBuzzer::PassiveMelodyBuzzer()
 }
 
 
-bool PassiveMelodyBuzzer::begin(int8_t pin, bool highActive)
+bool PassiveMelodyBuzzer::begin(int8_t pin, bool highActive, uint8_t timerId)
 {
 
     if (!_myBuzzer)
-        _myBuzzer = PassiveBuzzer::getBuzzer(pin, highActive);
+        _myBuzzer = PassiveBuzzer::getBuzzer(pin, highActive, timerId);
     else
 #if defined(ESP32)
     if (pin < 32)
 #elif defined(ESP8266)
     if (pin <= 16)
+#else 
+    if (pin >= 0)
 #endif    
         _myBuzzer->pin(pin, highActive);
     stop();
@@ -426,7 +431,8 @@ bool ret = false;
                 {
                     resetParams();
                     _nextTone = playTone(_melody);
-                    --_repeat;
+                    if (_repeat)
+                        --_repeat;
                     ret = true;
                 }
                 else
@@ -449,6 +455,13 @@ void PassiveMelodyBuzzer::playMelody(const char *melody, uint8_t verbose)
     {
         while ((*melody > 0) && (*melody <= ' '))
             melody++;
+        if (isdigit(*melody))
+        {
+            _verbose = *melody - '0';
+            melody++;
+            while ((*melody > 0) && (*melody <= ' '))
+                melody++;
+        }
         _debugLength = strlen(melody);
         _repeat = (*melody == ':')?1:0;
         if (_repeat)
@@ -525,7 +538,7 @@ const char * PassiveMelodyBuzzer::playTone(const char *melodyPart)
         return NULL;
     }
     if (_verbose)
-        Serial.printf("%4ld: Frequency: %4ld.%ldHz%s, Duration: %5ldms (+ %4ldms rest, total duration: %5ldms)\r\n", 
+        Serial.printf("%4u: Frequency: %4u.%uHz%s, Duration: %5ums (+ %4ums rest, total duration: %5ums)\r\n", 
             ++_debugCount, toneFreq / 10, toneFreq % 10, (0 == toneFreq?"  (Rest)":" (Sound)"), toneDuration,
             scanPause, toneDuration + scanPause);
     if (0 == toneFreq)
@@ -617,20 +630,21 @@ const char* getFreq(const char* p, uint32_t x)
 const char* getMulDiv(const char* str, uint32_t& mul, uint32_t& div) 
 {
     mul = div = 1;
-    char c;
     while (('*' == *str) || ('/' == *str))
         {
             uint32_t x;
             const char *p = getNumber(str + 1, x);
             if (p)
-                {
+            {
                 if (x > 0)
+                {
                     if ('*' == *str)
                         mul = mul * x;
                     else
                         div = div * x;
-                    str = p + 1;
                 }
+                str = p + 1;
+            }
             else
                 str++;
         }
@@ -674,7 +688,6 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
     char tone = 0;
     int sign = 0;
     bool prefixDone = false;
-    bool directLength = false;
     char restChar;
     abort = false;
     tonePause = 0;
@@ -702,7 +715,7 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
                     else    
                         _duration = 60000/DEFAULT_BPM;
                 }
-                else if (setOverride = ('!' == toneString[1]))
+                else if ((setOverride = ('!' == toneString[1])))
                 {
                     toneString++;
                     p = getDuration(toneString + 1, x);
@@ -716,7 +729,7 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
                     else 
                         ;
                 }
-                else if (setRelative = (('*' == toneString[1]) || ('/' == toneString[1]))) 
+                else if ((setRelative = (('*' == toneString[1]) || ('/' == toneString[1]))))
                 {
                         toneString = getMulDiv(toneString + 1, _mul, _div) - 1;
                 }
@@ -796,7 +809,7 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
                     _rest4 = DEFAULT_REST4;
                 }
             }
-            else if (abort = ('x' == tone))
+            else if ((abort = ('x' == tone)))
                 return NULL;
         }
         toneString++;

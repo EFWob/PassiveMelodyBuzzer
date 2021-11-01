@@ -14,25 +14,23 @@ class PassiveBuzzer;
 class PassiveMelodyBuzzer
 {
 public:
-    PassiveMelodyBuzzer(int8_t pin, bool highAvtive = true);
+    PassiveMelodyBuzzer(int8_t pin, bool highActive = true, uint8_t timerID = 0xff);
     PassiveMelodyBuzzer();
-    bool begin(int8_t pin, bool highAvtive = true);
-    bool begin();
+    bool begin(int8_t pin = -1, bool highAvtive = true, uint8_t timerId = 0xff);
     bool busy();
     inline bool loop() {return busy();};
     void stop();
-    const char *playTone(const char *melodyPart);
     void playMelody(const char *melody, uint8_t verbose = 0);
     void playMelody(String melody, uint8_t verbose = 0);
     void click();
     uint32_t busyCount();
     uint8_t getId();
-protected:
+private:
     const char* scanTone(const char*, uint32_t& toneFreq, uint32_t& toneDuration,
                         uint32_t& tonePause, bool& scanSuccess, bool& abort);
+    const char *playTone(const char *melodyPart);
     void resetParams();
-    PassiveBuzzer* _myBuzzer;    
-    int _playMelodyState;
+    PassiveBuzzer* _myBuzzer;   
     int _repeat;
     uint32_t _repeatTimeout, _repeatStart;
     const char * _melody;
