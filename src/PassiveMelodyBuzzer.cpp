@@ -506,6 +506,7 @@ void PassiveMelodyBuzzer::playMelody(String melody, uint8_t verbose)
 }
 
 
+
 const char * PassiveMelodyBuzzer::playTone(const char *melodyPart)
 {
     bool scanSuccess, abort;
@@ -583,6 +584,8 @@ void PassiveMelodyBuzzer::stop()
         _debugCount = _debugLength = 0;
         _nextTone = NULL;
         _repeatTimeout = 0;
+        _repeat = 0;
+        _RTTTLd = 0;
         if (_melody)
         {
             free((void *)_melody);
@@ -682,6 +685,182 @@ bool getRestChar(char c, char& out) {
     return false;
 }
 
+const char* PassiveMelodyBuzzer::scanToneRTTTL(const char* toneString, uint32_t & toneFreq, uint32_t& toneDuration,
+                        uint32_t& tonePause, bool &scanSuccess, bool &abort)
+{
+#define RTTTL_SCANSTATE_INIT     0
+#define RTTTL_SCANSTATE_DURATION 1    
+#define RTTTL_SCANSTATE_NOTE     2
+#define RTTTL_SCANSTATE_DELIM    3
+#define RTTTL_SCANSTATE_DONE     4
+#define RTTTL_SCANSTATE_EMPTY    5
+#define RTTTL_SCANSTATE_WAIT     6
+#define RTTTL_SCANSTATE_SHARP    7
+#define RTTTL_SCANSTATE_DOT      8
+#define RTTTL_SCANSTATE_SCALE    9
+
+uint8_t state = RTTTL_SCANSTATE_INIT;
+int d = _RTTTLd;
+int o;
+bool sharp;
+bool dot;
+char tone = 0;
+    abort = false;
+//    Serial.printf("Starting Scan: %s\r\n", toneString);
+    while ((RTTTL_SCANSTATE_DONE != state) && (RTTTL_SCANSTATE_EMPTY != state))
+    {
+        char c = tolower(*toneString);
+        if ((0 == c) || (',' == c))
+        {
+            if (0 != c)
+                toneString++;
+//            if (0 != c)
+//                Serial.printf("Delim found, state is: %d, toneString=%s\r\n", state, toneString);
+            if (0 != tone)
+            {
+                state = RTTTL_SCANSTATE_DONE;
+            }    
+            else
+            {
+                if (0 == c)
+                    state = RTTTL_SCANSTATE_EMPTY;
+                else
+                    state = RTTTL_SCANSTATE_INIT;
+            }
+        }
+        else if (' ' >= c)
+        {
+            toneString++;
+        }
+        else
+            switch (state)
+            {
+                case RTTTL_SCANSTATE_INIT:
+                    d = _RTTTLd;
+                    o = _octave;
+                    sharp = false;
+                    state = RTTTL_SCANSTATE_WAIT;
+                    dot = false;
+                    tone = 0;
+                    break;
+                case RTTTL_SCANSTATE_WAIT:
+//                    Serial.printf("ScanstateWait: '%c' of \"%s\"\r\n", c, toneString);
+                    if (((c >= '1') && (c <= '4')) || (c == '8'))
+                        state = RTTTL_SCANSTATE_DURATION;
+                    else if (((c >= 'a') && (c <= 'h')) || (c == 'p'))
+                        state = RTTTL_SCANSTATE_NOTE;
+                    else
+                        toneString++;
+                    break;
+                case RTTTL_SCANSTATE_DURATION:
+                    d = 0;
+                    toneString++;
+                    if ((c == '3') && (*toneString == '2'))
+                    {
+                        d = 32;                        
+                    }
+                    else if (c == '1')
+                    {
+                        if (*toneString == '6')
+                            d = 16;
+                        else
+                            d = 1;
+                    } 
+                    else if ((c == '2') || (c == '4') || (c == '8'))
+                    {
+                        d = (c - '0');
+                    }
+//                    Serial.printf("ScanStateDurationDone: %d: '%s'\r\n", d, toneString);
+                    if (d > 0)                    
+                    {
+                        if (d > 10)
+                            toneString++;
+                        state = RTTTL_SCANSTATE_NOTE;
+                    }
+                    else
+                        state = RTTTL_SCANSTATE_INIT;
+                    break;
+                case RTTTL_SCANSTATE_NOTE:
+                    if (((c >= 'a') && (c <= 'h')) || (c == 'p'))
+                    {
+                        if ('h' == c)
+                            tone = 'b';
+                        else
+                            tone = c;
+ //                       if (NULL != strchr("cdfga", tone))
+                        if ('p' != tone)
+                            state = RTTTL_SCANSTATE_SHARP;
+                        else
+                            state = RTTTL_SCANSTATE_SCALE;                    
+                    }
+                    else
+                        state = RTTTL_SCANSTATE_INIT;
+//                    Serial.printf("ScanStateNoteDone: tone = '%c', nextState = %d\r\n", tone, state);    
+                    toneString++;
+                    break;
+                case RTTTL_SCANSTATE_SHARP:
+                    if ((sharp = ('#' == c)))
+                    {
+                        toneString++;
+                    }
+                    state = RTTTL_SCANSTATE_SCALE;
+                    break;
+                case RTTTL_SCANSTATE_SCALE:
+                    if (c == '.')
+                    {
+                        dot = true;
+                        toneString++;
+                    }
+                    else if ((c >= '4') && (c <= '7'))
+                    {
+                        o = c - '0';
+                        toneString++;
+                        state = RTTTL_SCANSTATE_DOT;
+                    }
+                    else
+                        state = RTTTL_SCANSTATE_INIT;
+                    break;
+                case RTTTL_SCANSTATE_DOT:
+                    if ((dot = (c == '.')))
+                    {
+                        toneString++;
+                    }
+//                    Serial.printf("State DOT done, entering delim with: %s\r\n", toneString);
+                    state = RTTTL_SCANSTATE_DELIM;
+                    break;
+                default:
+                    state = RTTTL_SCANSTATE_INIT;
+                    break;
+            }
+    }
+
+//const char* PassiveMelodyBuzzer::scanToneRTTTL(const char* toneString, uint32_t & toneFreq, uint32_t& toneDuration,
+//                        uint32_t& tonePause, bool &scanSuccess, bool &abort)
+
+//    Serial.printf("Scan done, success = %d :'%s'\r\n", RTTTL_SCANSTATE_DONE == state, toneString);
+    if ((scanSuccess = (tone != 0)))
+    {
+        if (tone == 'p')
+            toneFreq = 0;
+        else
+        {
+            toneFreq = tones[tone - 'a'].freq[sharp?1:0];
+            //if (tone > 'b')
+            //    o++;
+            o = o - 4;
+            //Serial.print("Octave: ");Serial.println(o);
+            if (o)
+                toneFreq = toneFreq << o;
+        }
+        toneDuration = _duration / d;
+        if (dot)
+            toneDuration = toneDuration * 3 / 2;
+        return toneString;
+    }    
+    else
+        return NULL;
+}
+
 const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & toneFreq, uint32_t& toneDuration,
                         uint32_t& tonePause, bool &scanSuccess, bool &abort)
 {
@@ -694,6 +873,8 @@ const char* PassiveMelodyBuzzer::scanTone(const char* toneString, uint32_t & ton
     scanSuccess = false;
     if (NULL == toneString)
         return NULL;
+    if (_RTTTLd > 0)
+        return scanToneRTTTL(toneString, toneFreq, toneDuration, tonePause, scanSuccess, abort);
     while (!prefixDone && (0 != (tone = tolower(*toneString))))
     {
         if (!(prefixDone = ((tone == 'r') || (tone == '@') || ((tone >= 'a') && (tone <= 'g'))))) {
@@ -924,3 +1105,86 @@ uint8_t PassiveMelodyBuzzer::getId() {
         return _myBuzzer->getId(); 
     return 255;
 };
+
+
+const char* getRTTTLvaluepair(const char* in, char& control, int& controlvalue)
+{
+char c = tolower(*in);    
+uint32_t x;
+control = 0;
+    
+    if (!isalpha(c))
+        return (c != 0)?in + 1:in;
+    ++in;
+    if (NULL == strchr("odb", c))
+        return in;
+    while ((*in > 0) && ('=' != *in) && (':' != *in) && (',' != *in))
+        in++;
+    if (*in != '=')
+        return in;
+    in++;
+    while ((*in > 0) && (':' != *in) && !isdigit(*in))
+        in++;
+    if (!isdigit(*in))
+        return in;
+    in = getNumber(in, x) + 1;
+    if ('o' == c)
+    {
+        if ((x < 4) || (x > 7))
+            c = 0;
+    }
+    else if ('b' == c)
+    {
+        if ((x < 25) || (x > 900))
+            c = 0;
+    }
+    else if ((x != 1) && (x != 2) && (x != 4) && (x != 8) && (x != 16) && (x != 32))
+        c = 0;
+    if (c != 0)
+    {
+        control = c;
+        controlvalue = x;
+    }
+    return in;
+}
+
+void PassiveMelodyBuzzer::playRTTTL(const char* melody, uint8_t verbose)
+{
+// https://panuworld.net/nuukiaworld/download/nokix/rtttl.htm
+// https://ozekisms.com/p_2375-sms-ringtone-the-rtttl-format.html
+
+    const char* p1;
+    int o, b;
+    stop();
+    p1 = strchr(melody, ':');
+    _verbose = verbose;
+    if (NULL != p1)
+    {
+        p1++;
+        melody = strchr(p1, ':');
+    }
+    if ((NULL == p1) || (NULL == melody))
+        return;
+    melody++;
+    _RTTTLd = 4;
+    o = 6;
+    b = 63;
+    while (':' != *p1)
+    {
+        char control;
+        int  controlvalue;
+        p1 = getRTTTLvaluepair(p1, control, controlvalue);
+        if ('d' == control)
+            _RTTTLd = controlvalue;
+        else if ('o' == control)
+            o = controlvalue;
+        else if ('b' == control)
+            b = controlvalue;
+    }
+    _octave = o;
+    _duration = 240000 / b;
+    _melody = strdup(melody);
+    //Serial.printf("o=%d, b=%d, d=%d:%s\r\n", o, b, _RTTTLd, _melody);
+    if (NULL == (_nextTone = playTone(_melody)))
+        stop();
+}

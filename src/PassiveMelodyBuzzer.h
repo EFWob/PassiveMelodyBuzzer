@@ -22,11 +22,14 @@ public:
     void stop();
     void playMelody(const char *melody, uint8_t verbose = 0);
     void playMelody(String melody, uint8_t verbose = 0);
+    void playRTTTL(const char* melody, uint8_t verbose);
     void click();
     uint32_t busyCount();
     uint8_t getId();
 private:
     const char* scanTone(const char*, uint32_t& toneFreq, uint32_t& toneDuration,
+                        uint32_t& tonePause, bool& scanSuccess, bool& abort);
+    const char* scanToneRTTTL(const char*, uint32_t& toneFreq, uint32_t& toneDuration,
                         uint32_t& tonePause, bool& scanSuccess, bool& abort);
     const char *playTone(const char *melodyPart);
     void resetParams();
@@ -44,6 +47,7 @@ private:
     uint32_t _mul;
     int8_t _octave;
     uint8_t _verbose;
+    uint16_t _RTTTLd;
 
     uint16_t _debugCount, _debugLength;
 

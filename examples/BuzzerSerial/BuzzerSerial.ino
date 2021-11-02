@@ -5,6 +5,8 @@
  * At the time of writing, this library can only be used for ESP32 or ESP8266 (experimental).
  * A passive buzzer is required (active buzzers can play only one specific frequency).
  * The volume of the playback can not be changed by software setting.
+ * Can also play RTTTL ringtones, sample tunes:
+ * https://picaxe.com/rtttl-ringtones-for-tune-command/
  */
 #if defined(ESP32)
 #define BUZZER_PIN 21                     // IO Pin the buzzer is connected to 
@@ -41,7 +43,10 @@ void loop() {
     if (buzzer.busy())                       // if the buzzer is still playing the "old" melody, stop playback
       buzzer.stop();                         // Note that this is for demonstration only, starting a new melody with the line
                                              // below would cancel playback anyways...
-    buzzer.playMelody(readLine, 1);          // Feed it to the buzzer, to treat it as Melody
+    if (isRTTTL(readLine))
+      buzzer.playRTTTL(readLine.c_str(), 1);
+    else
+      buzzer.playMelody(readLine, 1);          // Feed it to the buzzer, to treat it as Melody
                                              // Second parameter will force some debug output on Serial
   }
 }
@@ -72,6 +77,16 @@ bool serialReadLine(String& line)
   return false;
 }
 
+bool isRTTTL(String x)
+{
+  const char *p1 = strchr(x.c_str(), ':');
+  if (p1)
+  {
+    p1 = strchr(p1+1, ':');
+    return NULL != p1;
+  }
+  return false;
+}
 /*
  * 
  You can paste the folling examples to the Serial monitor input.
